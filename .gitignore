@@ -1,0 +1,7 @@
+.idea
+node_modules
+build
+test-reports
+dist
+src/entities/*.java
+src/entities/*.ts

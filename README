@@ -1,0 +1,15 @@
+LOTS OF DOCUMENTATION TODO ...
+
+## Convert from Hibernate to typeorm
+
+1. Add this to the scripts section of your package.json
+
+```
+"scripts": {
+    "convert": "node node_modules/@lmig/comp3-nodejs-oracle/dist/cjs/convert/hibernate-entity-converter.js"
+}
+```
+
+2. Place your java entities in the src/entities folder
+
+3. npm run convert
