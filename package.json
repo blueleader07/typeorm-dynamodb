@@ -1,0 +1,37 @@
+{
+  "name": "@lmig/legal-nodejs-dynamodb",
+  "version": "0.1.0",
+  "description": "legal-nodejs-dynamodb",
+  "author": "Corporate Legal <WhattheTech@LibertyMutual.onmicrosoft.com>",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://git.forge.lmig.com/scm/cl/legal-nodejs-dynamodb.git"
+  },
+  "keywords": [],
+  "main": "./lib/index.js",
+  "files": [
+    "lib/"
+  ],
+  "scripts": {
+    "tsc": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run tsc",
+    "test": "jest"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^4.0.5",
+    "jest": "^26.6.1",
+    "jest-junit": "^8.0.0"
+  },
+  "jest": {
+    "reporters": [
+      "default",
+      "jest-junit"
+    ]
+  },
+  "jest-junit": {
+    "outputDirectory": "./test-reports",
+    "outputName": "junit.xml"
+  }
+}
