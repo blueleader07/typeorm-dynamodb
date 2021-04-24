@@ -12,7 +12,9 @@ public class PipelineParameters {
    *
    **/
 
-  private static final String GENERATED_AT = "2020-11-19T16:54:10.709-00:00";
+  private static final String GENERATED_AT = "Sat, 24 Apr 2021 10:34:33 GMT";
 
-  public static final PipelineConfiguration PIPELINE_CONFIGURATION = PipelineConfiguration.builder().artifactGuid("ae213499-3ede-4e5a-ac0f-ca7c66e410ee").build();
+  public static final PipelineConfiguration PIPELINE_CONFIGURATION = PipelineConfiguration.builder()
+          .artifactGuid("5d869aa3-a648-4fab-a06e-776940c64fdc")
+          .build();
 }
