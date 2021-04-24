@@ -7,12 +7,14 @@ import { FindOptions, BeginsWith } from './models/find-options'
 import { UpdateOptions } from './models/update-options'
 import { BatchWriteItem } from './models/batch-write-item'
 import { User } from './models/user'
-import { Pageable, Page, Sort, Order, pageableRoutes } from '@lmig/comp3-nodejs-utils'
+import { Pageable, Page, Sort, Order, pageableRoutes } from '@lmig/legal-nodejs-utils'
+import { DynamoPage } from './models/dynamo-page'
 
 export {
     auditHelper,
     BaseDocument,
     CrudRepository,
+    DynamoPage,
     tableHelper,
     paramHelper,
     FindOptions,

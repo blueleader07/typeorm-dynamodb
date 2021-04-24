@@ -1,4 +1,4 @@
-import { environmentUtils } from '@lmig/comp3-nodejs-utils'
+import { environmentUtils } from '@lmig/legal-nodejs-utils'
 
 export const tableHelper = {
 

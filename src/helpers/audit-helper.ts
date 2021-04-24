@@ -1,4 +1,4 @@
-import { commonUtils } from '@lmig/comp3-nodejs-utils'
+import { commonUtils } from '@lmig/legal-nodejs-utils'
 import { User } from '../models/user'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
