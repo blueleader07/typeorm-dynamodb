@@ -15,6 +15,14 @@ const DEFAULT_KEY_MAPPER = (item: any) => {
     }
 }
 
+const encode = (json: object) => {
+    return Buffer.from(JSON.stringify(json)).toString('base64')
+}
+
+const decode = (data: string) => {
+    return JSON.parse(Buffer.from(data, 'base64').toString('ascii'))
+}
+
 export class CrudRepository {
     tableName: string
 
@@ -61,9 +69,9 @@ export class CrudRepository {
      */
     async findPage (options: FindOptions, pageable: Pageable) {
         options.limit = commonUtils.isEmpty(pageable.pageSize) ? 15 : pageable.pageSize
-        options.exclusiveStartKey = pageable.exclusiveStartKey
+        options.exclusiveStartKey = pageable.exclusiveStartKey ? decode(pageable.exclusiveStartKey) : undefined
         const items = await this.find(options)
-        return new DynamoPage(items, pageable, items.lastEvaluatedKey)
+        return new DynamoPage(items, pageable, encode(items.lastEvaluatedKey))
     }
 
     /**
