@@ -31,7 +31,8 @@ export class DynamodbDriver implements Driver {
     treeSupport: boolean;
     supportedDataTypes: ColumnType[] = [
         'int',
-        'varchar'
+        'varchar',
+        'varchar2'
     ];
 
     dataTypeDefaults: DataTypeDefaults;
