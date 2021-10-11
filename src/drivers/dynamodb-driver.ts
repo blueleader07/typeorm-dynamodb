@@ -39,7 +39,37 @@ export class DynamodbDriver implements Driver {
     withLengthColumnTypes: ColumnType[];
     withPrecisionColumnTypes: ColumnType[];
     withScaleColumnTypes: ColumnType[];
-    mappedDataTypes: MappedColumnTypes;
+
+    /**
+     * Orm has special columns and we need to know what database column types should be for those types.
+     * Column types are driver dependant.
+     */
+    mappedDataTypes: MappedColumnTypes = {
+        createDate: 'varchar',
+        createDateDefault: 'now()',
+        updateDate: 'varchar',
+        updateDateDefault: 'now()',
+        deleteDate: 'varchar',
+        deleteDateNullable: true,
+        version: 'varchar',
+        treeLevel: 'varchar',
+        migrationId: 'varchar',
+        migrationName: 'varchar',
+        migrationTimestamp: 'varchar',
+        cacheId: 'varchar',
+        cacheIdentifier: 'varchar',
+        cacheTime: 'varchar',
+        cacheDuration: 'varchar',
+        cacheQuery: 'varchar',
+        cacheResult: 'varchar',
+        metadataType: 'varchar',
+        metadataDatabase: 'varchar',
+        metadataSchema: 'varchar',
+        metadataTable: 'varchar',
+        metadataName: 'varchar',
+        metadataValue: 'varchar'
+    };
+
     maxAliasLength?: number | undefined;
     constructor (connection: Connection) {
         this.connection = connection
@@ -90,6 +120,13 @@ export class DynamodbDriver implements Driver {
     }
 
     normalizeType (column: { type?: string | BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor | undefined; length?: string | number | undefined; precision?: number | null | undefined; scale?: number | undefined; isArray?: boolean | undefined; }): string {
+        if (column.type === Number || column.type === 'int' || column.type === 'int4') {
+            return 'N'
+        } else if (column.type === String || column.type === 'varchar') {
+            return 'S'
+        } else if (column.type === String || column.type === 'binary') {
+            return 'B'
+        }
         return column.type as string || ''
     }
 
