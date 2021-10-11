@@ -1,6 +1,7 @@
 import { auditHelper } from './helpers/audit-helper'
 import { BaseDocument } from './documents/base-document'
-import { Repository } from './repositories/crud-repository'
+import { Repository } from './repositories/repository'
+import { PagingAndSortingRepository } from './repositories/paging-and-sorting-repository'
 import { tableHelper } from './helpers/table-helper'
 import { paramHelper } from './helpers/param-helper'
 import { FindOptions, BeginsWith } from './models/find-options'
@@ -14,6 +15,7 @@ export {
     auditHelper,
     BaseDocument,
     Repository,
+    PagingAndSortingRepository,
     DynamoPage,
     tableHelper,
     paramHelper,
