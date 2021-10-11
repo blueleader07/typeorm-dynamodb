@@ -8,19 +8,26 @@ import {
 initializeTransactionalContext()
 patchTypeORMRepositoryWithBaseRepository()
 
+let entities: any[]
+
 export class DatasourceManagerOptions {
     entities?: ((Function | string | EntitySchema))[];
 }
 
 export const datasourceManager = {
-    async open () {
+    async open (options: DatasourceManagerOptions) {
         // not necessary (yet).  perhaps when typeorm adds dynamodb.
+        entities = options.entities || []
     },
 
     async getConnection () {
         return {
             async synchronize () {
                 // should create tables from entities
+                for (let i = 0; i < entities.length; i++) {
+                    const entity = entities[i]
+                    console.log('entity loaded', entity)
+                }
             }
         }
     },
