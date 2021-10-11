@@ -1,5 +1,5 @@
 import { auditHelper } from './helpers/audit-helper'
-import { BaseDocument } from './documents/base-document'
+import { BaseEntity } from './entities/base-entity'
 import { Repository } from './repositories/repository'
 import { PagingAndSortingRepository } from './repositories/paging-and-sorting-repository'
 import { tableHelper } from './helpers/table-helper'
@@ -10,10 +10,13 @@ import { BatchWriteItem } from './models/batch-write-item'
 import { User } from './models/user'
 import { Pageable, Page, Sort, Order, pageableRoutes } from '@lmig/legal-nodejs-utils'
 import { DynamoPage } from './models/dynamo-page'
+import { YesNoIndicatorTransformer } from './transformers/yes-no-indicator-transformer'
+import { BigNumberTransformer } from './transformers/big-number-transformer'
 
 export {
     auditHelper,
-    BaseDocument,
+    BaseEntity,
+    BigNumberTransformer,
     Repository,
     PagingAndSortingRepository,
     DynamoPage,
@@ -28,5 +31,6 @@ export {
     Pageable,
     pageableRoutes,
     User,
-    BatchWriteItem
+    BatchWriteItem,
+    YesNoIndicatorTransformer
 }
