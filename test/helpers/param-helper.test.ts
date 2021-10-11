@@ -1,11 +1,8 @@
-import chai from 'chai'
-import chaiAsPromised from 'chai-as-promised'
+import expect from 'expect'
 import { FindOptions } from '../../src/models/find-options'
 import { UpdateOptions } from '../../src/models/update-options'
-import { paramHelper } from '../../src/helpers/param-helper';
+import { paramHelper } from '../../src/helpers/param-helper'
 
-chai.use(chaiAsPromised)
-const expect = chai.expect
 const MACHINE_ID = '9117e83c-6e58-424b-9650-6027c8b67386'
 const MONTH_ID = `${MACHINE_ID}-2020-12`
 const VARIANCE = 'WEEKDAY'
@@ -24,7 +21,7 @@ describe('param-helper', () => {
         const params = paramHelper.find('local-toucan-scores', options)
 
         /** then: **/
-        expect(params).to.deep.equal({
+        expect(params).toEqual({
             ExpressionAttributeNames: {
                 '#machineId': 'machineId'
             },
@@ -50,7 +47,7 @@ describe('param-helper', () => {
         const params = paramHelper.find('local-toucan-scores', options)
 
         /** then: **/
-        expect(params).to.deep.equal({
+        expect(params).toEqual({
             ExpressionAttributeNames: {
                 '#monthId': 'monthId',
                 '#variance': 'variance'
@@ -82,7 +79,7 @@ describe('param-helper', () => {
         const params = paramHelper.update('local-toucan-score-totals', options)
 
         /** then: **/
-        expect(params).to.deep.equal({
+        expect(params).toEqual({
             TableName: 'local-toucan-score-totals',
             Key: {
                 machineId: MACHINE_ID,

@@ -1,9 +1,5 @@
-import chai from 'chai'
-import chaiAsPromised from 'chai-as-promised'
+import expect from 'expect'
 import { batchHelper } from '../../src/helpers/batch-helper'
-
-chai.use(chaiAsPromised)
-const expect = chai.expect
 
 const buildItems = (count: number) => {
     const items: any[] = []
@@ -22,7 +18,7 @@ describe('batch-helper', () => {
         const batches = batchHelper.batch(items)
 
         /** then: **/
-        expect(batches.length).to.equal(0)
+        expect(batches.length).toBe(0)
     })
     it('5 items', async (): Promise<any> => {
         /** given: **/
@@ -32,7 +28,7 @@ describe('batch-helper', () => {
         const batches = batchHelper.batch(items)
 
         /** then: **/
-        expect(batches.length).to.equal(1)
+        expect(batches.length).toBe(1)
     })
     it('25 items', async (): Promise<any> => {
         /** given: **/
@@ -42,7 +38,7 @@ describe('batch-helper', () => {
         const batches = batchHelper.batch(items)
 
         /** then: **/
-        expect(batches.length).to.equal(1)
+        expect(batches.length).toBe(1)
     })
     it('30 items', async (): Promise<any> => {
         /** given: **/
@@ -52,7 +48,7 @@ describe('batch-helper', () => {
         const batches = batchHelper.batch(items)
 
         /** then: **/
-        expect(batches.length).to.equal(2)
+        expect(batches.length).toBe(2)
     })
     it('30 items with batch size 5', async (): Promise<any> => {
         /** given: **/
@@ -62,6 +58,6 @@ describe('batch-helper', () => {
         const batches = batchHelper.batch(items, 5)
 
         /** then: **/
-        expect(batches.length).to.equal(6)
+        expect(batches.length).toBe(6)
     })
 })
