@@ -6,6 +6,7 @@ import { batchHelper } from '../helpers/batch-helper'
 import { ScanOptions } from '../models/scan-options'
 import { BatchWriteItem } from '../models/batch-write-item'
 import { DeepPartial, EntityMetadata, ObjectLiteral } from 'typeorm'
+import Stream from 'stream'
 
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
@@ -80,8 +81,10 @@ export class Repository<Entity extends ObjectLiteral> {
         if (options.exclusiveStartKey) {
             params.ExclusiveStartKey = options.exclusiveStartKey
         }
-        const results = await dbClient.scan(params).promise()
-        return results.Items || []
+        const results: any = await dbClient.scan(params).promise()
+        const items = results.Items || []
+        items.LastEvaluatedKey = results.LastEvaluatedKey
+        return items
     }
 
     async put (content: DeepPartial<Entity>) {
@@ -110,6 +113,15 @@ export class Repository<Entity extends ObjectLiteral> {
         return dbClient.delete(params).promise()
     }
 
+    async deleteAll (keyMapper?: any) {
+        const items = await this.scan({ limit: 500 })
+        if (items.length > 0) {
+            const itemIds = items.map(keyMapper || DEFAULT_KEY_MAPPER)
+            await this.deleteBatch(itemIds)
+            await this.deleteAll(keyMapper)
+        }
+    }
+
     async delete (key: any) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
@@ -129,12 +141,12 @@ export class Repository<Entity extends ObjectLiteral> {
         if (items.length > 0) {
             keyMapper = keyMapper || DEFAULT_KEY_MAPPER
             const keys = items.map(keyMapper)
-            await this.deleteAll(keys)
+            await this.deleteBatch(keys)
             await this.deleteQueryBatch(options, keyMapper)
         }
     }
 
-    async deleteAll (keys: any[]) {
+    async deleteBatch (keys: any[]) {
         if (keys.length > 0) {
             const dbClient = new AWS.DynamoDB.DocumentClient()
             const batches = batchHelper.batch(keys)
@@ -219,5 +231,30 @@ export class Repository<Entity extends ObjectLiteral> {
                 RequestItems: requestItems
             }).promise()
         }
+    }
+
+    async streamAll () {
+        const stream = new Stream.Readable({
+            objectMode: true
+        })
+        this._streamAll(stream, { limit: 500 }).then(() => {
+            console.log('stream complete.')
+        }).catch((error: any) => {
+            console.log('error streaming dynamodb data', error)
+        })
+        return stream
+    }
+
+    async _streamAll (stream: Stream.Readable, options: ScanOptions) {
+        let items = await this.scan(options)
+        while (items.length > 0) {
+            items.forEach((item: any) => stream.push(item))
+            if (items.LastEvaluatedKey) {
+                items = await this.scan(options)
+            } else {
+                break
+            }
+        }
+        stream.push(null)
     }
 }
