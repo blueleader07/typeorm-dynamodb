@@ -1,4 +1,6 @@
 import { auditHelper } from './helpers/audit-helper'
+import { datasourceInitializer } from './middleware/datasource-initializer'
+import { datasourceManager } from './managers/datasource-manager'
 import { BaseEntity } from './entities/base-entity'
 import { Repository } from './repositories/repository'
 import { PagingAndSortingRepository } from './repositories/paging-and-sorting-repository'
@@ -15,6 +17,8 @@ import { BigNumberTransformer } from './transformers/big-number-transformer'
 
 export {
     auditHelper,
+    datasourceInitializer,
+    datasourceManager,
     BaseEntity,
     BigNumberTransformer,
     Repository,
