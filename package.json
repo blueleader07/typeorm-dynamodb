@@ -14,8 +14,7 @@
     "convert": "npx ts-node src/convert/hibernate-entity-converter.ts",
     "lint": "eslint src/**/*.ts --fix",
     "prepublishOnly": "npm run build",
-    "test": "env NODE_ENV=local nyc mocha -r ts-node/register --reporter mocha-junit-reporter --reporter-options mochaFile=./test-reports/junit.xml test/**/**/*.test.ts",
-    "test:console": "nyc mocha  -r ts-node/register --reporter spec test/**/**/*.test.ts",
+    "test": "jest --coverage",
     "tsc": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json"
   },
   "repository": {
