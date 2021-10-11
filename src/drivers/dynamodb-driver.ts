@@ -120,13 +120,6 @@ export class DynamodbDriver implements Driver {
     }
 
     normalizeType (column: { type?: string | BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor | undefined; length?: string | number | undefined; precision?: number | null | undefined; scale?: number | undefined; isArray?: boolean | undefined; }): string {
-        if (column.type === Number || column.type === 'int' || column.type === 'int4') {
-            return 'N'
-        } else if (column.type === String || column.type === 'varchar') {
-            return 'S'
-        } else if (column.type === String || column.type === 'binary') {
-            return 'B'
-        }
         return column.type as string || ''
     }
 
