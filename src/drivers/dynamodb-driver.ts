@@ -125,7 +125,7 @@ export class DynamodbDriver implements Driver {
             return 'number'
         } else if (column.type === String || column.type === 'varchar' || column.type === 'varchar2') {
             return 'string'
-        } else if (column.type === Date || column.type === 'timestamp') {
+        } else if (column.type === Date || column.type === 'timestamp' || column.type === 'date' || column.type === 'datetime') {
             return 'string'
         } else if (column.type === 'timestamptz') {
             return 'string'
