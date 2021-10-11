@@ -42,13 +42,7 @@ export class DynamodbDriver implements Driver {
      * Gets list of column data types that support length by a driver.
      */
     withLengthColumnTypes: ColumnType[] = [
-        'character varying',
-        'varchar',
-        'character',
-        'char',
-        'bit',
-        'varbit',
-        'bit varying'
+        'string'
     ];
 
     withPrecisionColumnTypes: ColumnType[] = [];
