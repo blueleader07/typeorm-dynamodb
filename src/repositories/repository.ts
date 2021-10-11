@@ -6,6 +6,7 @@ import { batchHelper } from '../helpers/batch-helper'
 import { ScanOptions } from '../models/scan-options'
 import { BatchWriteItem } from '../models/batch-write-item'
 import { DeepPartial, EntityMetadata, ObjectLiteral } from 'typeorm'
+import { isArray } from 'util'
 
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
@@ -53,7 +54,14 @@ export class Repository<Entity extends ObjectLiteral> {
         return items
     }
 
-    async findOne (options: FindOptions) {
+    async findOne (id: FindOptions | string) {
+        let options
+        if (id instanceof FindOptions) {
+            options = id
+        } else {
+            options = new FindOptions()
+            options.where = { id }
+        }
         options.limit = 1
         const items = await this.find(options)
         return items.length > 0 ? items[0] : null
@@ -85,6 +93,13 @@ export class Repository<Entity extends ObjectLiteral> {
         }
         await dbClient.put(params).promise()
         return content
+    }
+
+    async insert (content: DeepPartial<Entity | Entity[]>) {
+        if (Array.isArray(content)) {
+            return this.putAll(content)
+        }
+        return this.put(content)
     }
 
     async deleteById (id: string) {
