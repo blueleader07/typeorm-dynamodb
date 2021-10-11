@@ -35,11 +35,24 @@ export class DynamodbDriver implements Driver {
         'binary'
     ];
 
-    dataTypeDefaults: DataTypeDefaults;
-    spatialTypes: ColumnType[];
-    withLengthColumnTypes: ColumnType[];
-    withPrecisionColumnTypes: ColumnType[];
-    withScaleColumnTypes: ColumnType[];
+    dataTypeDefaults: DataTypeDefaults = {};
+    spatialTypes: ColumnType[] = [];
+
+    /**
+     * Gets list of column data types that support length by a driver.
+     */
+    withLengthColumnTypes: ColumnType[] = [
+        'character varying',
+        'varchar',
+        'character',
+        'char',
+        'bit',
+        'varbit',
+        'bit varying'
+    ];
+
+    withPrecisionColumnTypes: ColumnType[] = [];
+    withScaleColumnTypes: ColumnType[] = [];
 
     /**
      * Orm has special columns and we need to know what database column types should be for those types.
