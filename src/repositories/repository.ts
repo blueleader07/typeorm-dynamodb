@@ -6,7 +6,6 @@ import { batchHelper } from '../helpers/batch-helper'
 import { ScanOptions } from '../models/scan-options'
 import { BatchWriteItem } from '../models/batch-write-item'
 import { DeepPartial, EntityMetadata, ObjectLiteral } from 'typeorm'
-import { isArray } from 'util'
 
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
