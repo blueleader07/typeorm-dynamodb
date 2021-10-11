@@ -13,9 +13,19 @@ export class DatasourceManagerOptions {
 }
 
 export const datasourceManager = {
+    async open () {
+        // not necessary (yet).  perhaps when typeorm adds dynamodb.
+    },
+
+    async getConnection () {
+        return {
+            async synchronize () {
+                // should create tables from entities
+            }
+        }
+    },
 
     getCustomRepository<T> (customRepository: ObjectType<T>): T {
         return new (customRepository as any)()
     }
-
 }
