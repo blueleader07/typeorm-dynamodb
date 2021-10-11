@@ -1,13 +1,11 @@
 import { FindOptions } from '../models/find-options'
-import { tableHelper } from '../helpers/table-helper'
 import { UpdateOptions } from '../models/update-options'
 import { paramHelper } from '../helpers/param-helper'
 import AWS from 'aws-sdk'
 import { batchHelper } from '../helpers/batch-helper'
 import { ScanOptions } from '../models/scan-options'
 import { BatchWriteItem } from '../models/batch-write-item'
-import { commonUtils, Page, Pageable } from '@lmig/legal-nodejs-utils'
-import { DynamoPage } from '../models/dynamo-page'
+import { DeepPartial, EntityMetadata, ObjectLiteral } from 'typeorm'
 
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
@@ -15,25 +13,16 @@ const DEFAULT_KEY_MAPPER = (item: any) => {
     }
 }
 
-const encode = (json: object) => {
-    return Buffer.from(JSON.stringify(json)).toString('base64')
-}
-
-const decode = (data: string) => {
-    return JSON.parse(Buffer.from(data, 'base64').toString('ascii'))
-}
-
-export class CrudRepository {
-    tableName: string
-
-    constructor (tableName: string) {
-        this.tableName = tableHelper.name(tableName)
-    }
+export class Repository<Entity extends ObjectLiteral> {
+    /**
+     * Entity metadata of the entity current repository manages.
+     */
+    readonly metadata: EntityMetadata;
 
     async get (key: any) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.tableName,
+            TableName: this.metadata.tableName,
             Key: key
         }
         const results = await dbClient.get(params).promise()
@@ -42,7 +31,7 @@ export class CrudRepository {
 
     async find (options: FindOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.find(this.tableName, options)
+        const params = paramHelper.find(this.metadata.tableName, options)
         const results = await dbClient.query(params).promise()
         const items: any = results.Items || []
         items.lastEvaluatedKey = results.LastEvaluatedKey
@@ -52,7 +41,7 @@ export class CrudRepository {
     async findAll (options: FindOptions) {
         delete options.limit
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.find(this.tableName, options)
+        const params = paramHelper.find(this.metadata.tableName, options)
         let items: any[] = []
         let results = await dbClient.query(params).promise()
         items = items.concat(results.Items || [])
@@ -64,34 +53,6 @@ export class CrudRepository {
         return items
     }
 
-    /**
-     * Queries by page size and exclusiveStartKey
-     */
-    async findPage (options: FindOptions, pageable: Pageable) {
-        options.limit = commonUtils.isEmpty(pageable.pageSize) ? 15 : pageable.pageSize
-        options.exclusiveStartKey = pageable.exclusiveStartKey ? decode(pageable.exclusiveStartKey) : undefined
-        const items = await this.find(options)
-        return new DynamoPage(items, pageable, encode(items.lastEvaluatedKey))
-    }
-
-    /**
-     * Queries ALL items then returns the desired subset
-     * WARNING: This is NOT an efficient way of querying dynamodb.
-     * Please only use this if you must, preferably on light use pages
-     */
-    async findPageWithCountExpensive (options: FindOptions, pageable: Pageable) {
-        const pageSize = commonUtils.isEmpty(pageable.pageSize) ? 15 : pageable.pageSize
-        const pageNumber = commonUtils.isEmpty(pageable.pageNumber) ? 0 : pageable.pageNumber
-        const items = await this.findAll(options)
-        const start = pageNumber * pageSize
-        let count = (pageNumber + 1) * pageSize
-        if (start + count > items.length) {
-            count = items.length - start
-        }
-        const subset = items.splice(start, count)
-        return new Page(subset, pageable, subset.length + items.length)
-    }
-
     async findOne (options: FindOptions) {
         options.limit = 1
         const items = await this.find(options)
@@ -101,7 +62,7 @@ export class CrudRepository {
     async scan (options: ScanOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params: any = {
-            TableName: this.tableName
+            TableName: this.metadata.tableName
             // IndexName: findOptions.index,
             // KeyConditionExpression: FindOptions.toKeyConditionExpression(findOptions.where),
             // ExpressionAttributeValues: FindOptions.toExpressionAttributeValues(findOptions.where)
@@ -116,10 +77,10 @@ export class CrudRepository {
         return results.Items || []
     }
 
-    async put (content: any) {
+    async put (content: DeepPartial<Entity>) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.tableName,
+            TableName: this.metadata.tableName,
             Item: content
         }
         await dbClient.put(params).promise()
@@ -129,7 +90,7 @@ export class CrudRepository {
     async deleteById (id: string) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.tableName,
+            TableName: this.metadata.tableName,
             Key: { id: id }
         }
         return dbClient.delete(params).promise()
@@ -138,7 +99,7 @@ export class CrudRepository {
     async delete (key: any) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.tableName,
+            TableName: this.metadata.tableName,
             Key: key
         }
         return dbClient.delete(params).promise()
@@ -165,7 +126,7 @@ export class CrudRepository {
             const batches = batchHelper.batch(keys)
             const promises = batches.map((batch: any) => {
                 const RequestItems: any = {}
-                RequestItems[this.tableName] = batch.map((Key: any) => {
+                RequestItems[this.metadata.tableName] = batch.map((Key: any) => {
                     return {
                         DeleteRequest: {
                             Key
@@ -186,7 +147,7 @@ export class CrudRepository {
             const batches = batchHelper.batch(items)
             const promises = batches.map((batch: any) => {
                 const RequestItems: any = {}
-                RequestItems[this.tableName] = batch.map((Item: any) => {
+                RequestItems[this.metadata.tableName] = batch.map((Item: any) => {
                     return {
                         PutRequest: {
                             Item
@@ -203,7 +164,7 @@ export class CrudRepository {
 
     async update (options: UpdateOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.update(this.tableName, options)
+        const params = paramHelper.update(this.metadata.tableName, options)
         return dbClient.update(params).promise()
     }
 
@@ -214,14 +175,14 @@ export class CrudRepository {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i]
             const requestItems: any = {}
-            requestItems[this.tableName] = {
+            requestItems[this.metadata.tableName] = {
                 Keys: batch
             }
             const response = await dbClient.batchGet({
                 RequestItems: requestItems
             }).promise()
             if (response.Responses !== undefined) {
-                items = items.concat(response.Responses[this.tableName])
+                items = items.concat(response.Responses[this.metadata.tableName])
             }
         }
         return items
@@ -233,7 +194,7 @@ export class CrudRepository {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i]
             const requestItems: any = {}
-            requestItems[this.tableName] = batch.map(write => {
+            requestItems[this.metadata.tableName] = batch.map(write => {
                 const request: any = {}
                 request[write.type] = {
                     Item: write.item

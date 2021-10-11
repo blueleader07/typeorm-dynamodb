@@ -1,6 +1,6 @@
 import { auditHelper } from './helpers/audit-helper'
 import { BaseDocument } from './documents/base-document'
-import { CrudRepository } from './repositories/crud-repository'
+import { Repository } from './repositories/crud-repository'
 import { tableHelper } from './helpers/table-helper'
 import { paramHelper } from './helpers/param-helper'
 import { FindOptions, BeginsWith } from './models/find-options'
@@ -13,7 +13,7 @@ import { DynamoPage } from './models/dynamo-page'
 export {
     auditHelper,
     BaseDocument,
-    CrudRepository,
+    Repository,
     DynamoPage,
     tableHelper,
     paramHelper,
