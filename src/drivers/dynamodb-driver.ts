@@ -30,9 +30,9 @@ export class DynamodbDriver implements Driver {
     isReplicated: boolean;
     treeSupport: boolean;
     supportedDataTypes: ColumnType[] = [
-        'int',
-        'varchar',
-        'varchar2'
+        'string',
+        'number',
+        'binary'
     ];
 
     dataTypeDefaults: DataTypeDefaults;
@@ -121,7 +121,43 @@ export class DynamodbDriver implements Driver {
     }
 
     normalizeType (column: { type?: string | BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor | undefined; length?: string | number | undefined; precision?: number | null | undefined; scale?: number | undefined; isArray?: boolean | undefined; }): string {
-        return column.type as string || ''
+        if (column.type === Number || column.type === 'int' || column.type === 'int4') {
+            return 'number'
+        } else if (column.type === String || column.type === 'varchar') {
+            return 'string'
+        } else if (column.type === Date || column.type === 'timestamp') {
+            return 'string'
+        } else if (column.type === 'timestamptz') {
+            return 'string'
+        } else if (column.type === 'time') {
+            return 'string'
+        } else if (column.type === 'timetz') {
+            return 'string'
+        } else if (column.type === Boolean || column.type === 'bool') {
+            return 'string'
+        } else if (column.type === 'simple-array') {
+            return 'string'
+        } else if (column.type === 'simple-json') {
+            return 'string'
+        } else if (column.type === 'simple-enum') {
+            return 'string'
+        } else if (column.type === 'int2') {
+            return 'number'
+        } else if (column.type === 'int8') {
+            return 'string'
+        } else if (column.type === 'decimal') {
+            return 'string'
+        } else if (column.type === 'float8' || column.type === 'float') {
+            return 'string'
+        } else if (column.type === 'float4') {
+            return 'string'
+        } else if (column.type === 'char') {
+            return 'string'
+        } else if (column.type === 'varbit') {
+            return 'string'
+        } else {
+            return column.type as string || ''
+        }
     }
 
     normalizeDefault (columnMetadata: ColumnMetadata): string | undefined {
