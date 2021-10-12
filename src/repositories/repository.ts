@@ -22,7 +22,8 @@ export class Repository<Entity extends ObjectLiteral> {
      */
     readonly metadata: EntityMetadata;
     getTableName () {
-        return tableHelper.name(this.metadata.tableName, environmentUtils.getNodeEnv())
+        const tableName = tableHelper.name(this.metadata.tableName, environmentUtils.getNodeEnv())
+        return tableName.replace(/_/g, '-')
     }
 
     async get (key: any) {
