@@ -15,6 +15,8 @@ import { MappedColumnTypes } from 'typeorm/driver/types/MappedColumnTypes'
 import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata'
 import { SchemaBuilder } from 'typeorm/schema-builder/SchemaBuilder'
 import { View } from 'typeorm/schema-builder/view/View'
+import { DynamodbSchemaBuilder } from '../schema-builder/dynamodb-schema-builder'
+import { DynamodbQueryRunner } from './dynamodb-query-runner'
 
 /**
  * Organizes communication with MongoDB.
@@ -79,6 +81,13 @@ export class DynamodbDriver implements Driver {
     };
 
     maxAliasLength?: number | undefined;
+
+    /**
+     * Mongodb does not require to dynamically create query runner each time,
+     * because it does not have a regular connection pool as RDBMS systems have.
+     */
+    queryRunner?: DynamodbQueryRunner;
+
     constructor (connection: Connection) {
         this.connection = connection
     }
@@ -96,11 +105,11 @@ export class DynamodbDriver implements Driver {
     }
 
     createSchemaBuilder (): SchemaBuilder {
-        throw new Error('Method not implemented.')
+        return new DynamodbSchemaBuilder(this.connection)
     }
 
     createQueryRunner (mode: ReplicationMode): QueryRunner {
-        throw new Error('Method not implemented.')
+        return this.queryRunner!
     }
 
     escapeQueryWithParameters (sql: string, parameters: ObjectLiteral, nativeParameters: ObjectLiteral): [string, any[]] {
@@ -112,7 +121,14 @@ export class DynamodbDriver implements Driver {
     }
 
     buildTableName (tableName: string, schema?: string, database?: string): string {
-        return tableName
+        const parts = [tableName]
+        if (schema) {
+            parts.unshift(schema)
+        }
+        if (database) {
+            parts.unshift(database)
+        }
+        return parts.join('.')
     }
 
     parseTableName (target: string | EntityMetadata | Table | View | TableForeignKey): { tableName: string; schema?: string | undefined; database?: string | undefined; } {

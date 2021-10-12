@@ -5,10 +5,16 @@ import AWS from 'aws-sdk'
 import { batchHelper } from '../helpers/batch-helper'
 import { ScanOptions } from '../models/scan-options'
 import { BatchWriteItem } from '../models/batch-write-item'
-import { DeepPartial, EntityMetadata, ObjectLiteral } from 'typeorm'
+import {
+    DeepPartial,
+    EntityMetadata, FindConditions, FindOneOptions,
+    ObjectID,
+    ObjectLiteral,
+    SelectQueryBuilder
+} from 'typeorm'
 import { DynamodbReadStream } from '../streams/dynamodb-read-stream'
-import { tableHelper } from '../index'
-import { environmentUtils } from '@lmig/legal-nodejs-utils'
+import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager'
+import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
 
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
@@ -18,18 +24,31 @@ const DEFAULT_KEY_MAPPER = (item: any) => {
 
 export class Repository<Entity extends ObjectLiteral> {
     /**
+     * Entity Manager used by this repository.
+     */
+    readonly manager: DynamoDbEntityManager;
+
+    /**
      * Entity metadata of the entity current repository manages.
      */
     readonly metadata: EntityMetadata;
-    getTableName () {
-        const tableName = tableHelper.name(this.metadata.tableName, environmentUtils.getNodeEnv())
-        return tableName.replace(/_/g, '-')
+
+    /**
+     * Query runner provider used for this repository.
+     */
+    readonly queryRunner?: DynamodbQueryRunner;
+
+    /**
+     * Creates a new query builder that can be used to build a sql query.
+     */
+    createQueryBuilder (alias?: string, queryRunner?: DynamodbQueryRunner): SelectQueryBuilder<Entity> {
+        return this.manager.createQueryBuilder<Entity>(this.metadata.target as any, alias || this.metadata.targetName, queryRunner || this.queryRunner)
     }
 
     async get (key: any) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.getTableName(),
+            TableName: this.metadata.tableName,
             Key: key
         }
         const results = await dbClient.get(params).promise()
@@ -38,7 +57,7 @@ export class Repository<Entity extends ObjectLiteral> {
 
     async find (options: FindOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.find(this.getTableName(), options)
+        const params = paramHelper.find(this.metadata.tableName, options)
         const results = await dbClient.query(params).promise()
         const items: any = results.Items || []
         items.lastEvaluatedKey = results.LastEvaluatedKey
@@ -48,7 +67,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async findAll (options: FindOptions) {
         delete options.limit
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.find(this.getTableName(), options)
+        const params = paramHelper.find(this.metadata.tableName, options)
         let items: any[] = []
         let results = await dbClient.query(params).promise()
         items = items.concat(results.Items || [])
@@ -60,23 +79,17 @@ export class Repository<Entity extends ObjectLiteral> {
         return items
     }
 
-    async findOne (id: FindOptions | string) {
-        let options
-        if (id instanceof FindOptions) {
-            options = id
-        } else {
-            options = new FindOptions()
-            options.where = { id }
-        }
-        options.limit = 1
-        const items = await this.find(options)
-        return items.length > 0 ? items[0] : null
+    /**
+     * Finds first entity that matches given conditions.
+     */
+    findOne (optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>) {
+        return this.manager.findOne(this.metadata.target as any, optionsOrConditions as any, maybeOptions)
     }
 
     async scan (options: ScanOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params: any = {
-            TableName: this.getTableName()
+            TableName: this.metadata.tableName
             // IndexName: findOptions.index,
             // KeyConditionExpression: FindOptions.toKeyConditionExpression(findOptions.where),
             // ExpressionAttributeValues: FindOptions.toExpressionAttributeValues(findOptions.where)
@@ -96,7 +109,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async put (content: DeepPartial<Entity>) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.getTableName(),
+            TableName: this.metadata.tableName,
             Item: content
         }
         await dbClient.put(params).promise()
@@ -113,7 +126,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async deleteById (id: string) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.getTableName(),
+            TableName: this.metadata.tableName,
             Key: { id: id }
         }
         return dbClient.delete(params).promise()
@@ -131,7 +144,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async delete (key: any) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.getTableName(),
+            TableName: this.metadata.tableName,
             Key: key
         }
         return dbClient.delete(params).promise()
@@ -158,7 +171,7 @@ export class Repository<Entity extends ObjectLiteral> {
             const batches = batchHelper.batch(keys)
             const promises = batches.map((batch: any) => {
                 const RequestItems: any = {}
-                RequestItems[this.getTableName()] = batch.map((Key: any) => {
+                RequestItems[this.metadata.tableName] = batch.map((Key: any) => {
                     return {
                         DeleteRequest: {
                             Key
@@ -179,7 +192,7 @@ export class Repository<Entity extends ObjectLiteral> {
             const batches = batchHelper.batch(items)
             const promises = batches.map((batch: any) => {
                 const RequestItems: any = {}
-                RequestItems[this.getTableName()] = batch.map((Item: any) => {
+                RequestItems[this.metadata.tableName] = batch.map((Item: any) => {
                     return {
                         PutRequest: {
                             Item
@@ -196,7 +209,7 @@ export class Repository<Entity extends ObjectLiteral> {
 
     async update (options: UpdateOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.update(this.getTableName(), options)
+        const params = paramHelper.update(this.metadata.tableName, options)
         return dbClient.update(params).promise()
     }
 
@@ -207,14 +220,14 @@ export class Repository<Entity extends ObjectLiteral> {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i]
             const requestItems: any = {}
-            requestItems[this.getTableName()] = {
+            requestItems[this.metadata.tableName] = {
                 Keys: batch
             }
             const response = await dbClient.batchGet({
                 RequestItems: requestItems
             }).promise()
             if (response.Responses !== undefined) {
-                items = items.concat(response.Responses[this.getTableName()])
+                items = items.concat(response.Responses[this.metadata.tableName])
             }
         }
         return items
@@ -226,7 +239,7 @@ export class Repository<Entity extends ObjectLiteral> {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i]
             const requestItems: any = {}
-            requestItems[this.getTableName()] = batch.map(write => {
+            requestItems[this.metadata.tableName] = batch.map(write => {
                 const request: any = {}
                 request[write.type] = {
                     Item: write.item
