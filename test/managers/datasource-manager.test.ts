@@ -18,6 +18,7 @@ describe('datasource-manager', () => {
     it('getCustomRepository', async (): Promise<any> => {
         await datasourceManager.open({ entities: [DummyEntity] })
         const repository = await datasourceManager.getCustomRepository(DummyRepository)
-        expect(repository).not.toBe(undefined)
+        const stream = await repository.streamAll()
+        expect(stream).not.toBe(undefined)
     })
 })

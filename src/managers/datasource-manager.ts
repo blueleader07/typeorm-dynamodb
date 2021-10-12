@@ -1,6 +1,9 @@
 import { ObjectType } from 'typeorm/common/ObjectType'
 import { EntitySchema } from 'typeorm/entity-schema/EntitySchema'
-import { Connection, CustomRepositoryNotFoundError, getMetadataArgsStorage } from 'typeorm'
+import {
+    Connection, CustomRepositoryNotFoundError,
+    EntityTarget, getMetadataArgsStorage, Repository
+} from 'typeorm'
 import {
     initializeTransactionalContext,
     patchTypeORMRepositoryWithBaseRepository
@@ -41,29 +44,25 @@ export const datasourceManager = {
 
     async getConnection (name?: string) {
         return connectionManager.get(name)
-        // return new DynamodbDriver()
-        // return {
-        // async synchronize () {
-        //     // should create tables from entities
-        //     for (let i = 0; i < entities.length; i++) {
-        //         const entity = entities[i]
-        //         console.log('entity loaded', entity)
-        //     }
-        // }
-        // }
     },
 
-    async getCustomRepository<T> (customRepository: ObjectType<T>): Promise<T> {
+    getCustomRepository<T> (customRepository: ObjectType<T>, name?: string): T {
+        const connection = connectionManager.get(name)
         const entityRepositoryMetadataArgs = getMetadataArgsStorage().entityRepositories.find(repository => {
             return repository.target === (customRepository instanceof Function ? customRepository : (customRepository as any).constructor)
         })
-        if (!entityRepositoryMetadataArgs) { throw new CustomRepositoryNotFoundError(customRepository) }
-
-        const connection = await connectionManager.get()
-
+        if (!entityRepositoryMetadataArgs) {
+            throw new CustomRepositoryNotFoundError(customRepository)
+        }
         const entityMetadata = entityRepositoryMetadataArgs.entity ? connection.getMetadata(entityRepositoryMetadataArgs.entity) : undefined
-        const entityRepositoryInstance = new (entityRepositoryMetadataArgs.target as any)(this, entityMetadata)
-
+        const entityRepositoryInstance = new (entityRepositoryMetadataArgs.target as any)(this, entityMetadata);
+        (entityRepositoryInstance as any).manager = this;
+        (entityRepositoryInstance as any).metadata = entityMetadata
         return entityRepositoryInstance
+    },
+
+    getRepository<Entity> (target: EntityTarget<Entity>, name?: string): Repository<Entity> {
+        const connection = connectionManager.get(name)
+        return connection.getRepository(target)
     }
 }
