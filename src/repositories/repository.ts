@@ -6,7 +6,9 @@ import { batchHelper } from '../helpers/batch-helper'
 import { ScanOptions } from '../models/scan-options'
 import { BatchWriteItem } from '../models/batch-write-item'
 import { DeepPartial, EntityMetadata, ObjectLiteral } from 'typeorm'
-import Stream from 'stream'
+import { DynamodbReadStream } from '../streams/dynamodb-read-stream'
+import { tableHelper } from '../index'
+import { environmentUtils } from '@lmig/legal-nodejs-utils'
 
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
@@ -19,11 +21,14 @@ export class Repository<Entity extends ObjectLiteral> {
      * Entity metadata of the entity current repository manages.
      */
     readonly metadata: EntityMetadata;
+    getTableName () {
+        return tableHelper.name(this.metadata.tableName, environmentUtils.getNodeEnv())
+    }
 
     async get (key: any) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.metadata.tableName,
+            TableName: this.getTableName(),
             Key: key
         }
         const results = await dbClient.get(params).promise()
@@ -32,7 +37,7 @@ export class Repository<Entity extends ObjectLiteral> {
 
     async find (options: FindOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.find(this.metadata.tableName, options)
+        const params = paramHelper.find(this.getTableName(), options)
         const results = await dbClient.query(params).promise()
         const items: any = results.Items || []
         items.lastEvaluatedKey = results.LastEvaluatedKey
@@ -42,7 +47,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async findAll (options: FindOptions) {
         delete options.limit
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.find(this.metadata.tableName, options)
+        const params = paramHelper.find(this.getTableName(), options)
         let items: any[] = []
         let results = await dbClient.query(params).promise()
         items = items.concat(results.Items || [])
@@ -70,7 +75,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async scan (options: ScanOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params: any = {
-            TableName: this.metadata.tableName
+            TableName: this.getTableName()
             // IndexName: findOptions.index,
             // KeyConditionExpression: FindOptions.toKeyConditionExpression(findOptions.where),
             // ExpressionAttributeValues: FindOptions.toExpressionAttributeValues(findOptions.where)
@@ -90,7 +95,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async put (content: DeepPartial<Entity>) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.metadata.tableName,
+            TableName: this.getTableName(),
             Item: content
         }
         await dbClient.put(params).promise()
@@ -107,7 +112,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async deleteById (id: string) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.metadata.tableName,
+            TableName: this.getTableName(),
             Key: { id: id }
         }
         return dbClient.delete(params).promise()
@@ -125,7 +130,7 @@ export class Repository<Entity extends ObjectLiteral> {
     async delete (key: any) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
-            TableName: this.metadata.tableName,
+            TableName: this.getTableName(),
             Key: key
         }
         return dbClient.delete(params).promise()
@@ -152,7 +157,7 @@ export class Repository<Entity extends ObjectLiteral> {
             const batches = batchHelper.batch(keys)
             const promises = batches.map((batch: any) => {
                 const RequestItems: any = {}
-                RequestItems[this.metadata.tableName] = batch.map((Key: any) => {
+                RequestItems[this.getTableName()] = batch.map((Key: any) => {
                     return {
                         DeleteRequest: {
                             Key
@@ -173,7 +178,7 @@ export class Repository<Entity extends ObjectLiteral> {
             const batches = batchHelper.batch(items)
             const promises = batches.map((batch: any) => {
                 const RequestItems: any = {}
-                RequestItems[this.metadata.tableName] = batch.map((Item: any) => {
+                RequestItems[this.getTableName()] = batch.map((Item: any) => {
                     return {
                         PutRequest: {
                             Item
@@ -190,7 +195,7 @@ export class Repository<Entity extends ObjectLiteral> {
 
     async update (options: UpdateOptions) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.update(this.metadata.tableName, options)
+        const params = paramHelper.update(this.getTableName(), options)
         return dbClient.update(params).promise()
     }
 
@@ -201,14 +206,14 @@ export class Repository<Entity extends ObjectLiteral> {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i]
             const requestItems: any = {}
-            requestItems[this.metadata.tableName] = {
+            requestItems[this.getTableName()] = {
                 Keys: batch
             }
             const response = await dbClient.batchGet({
                 RequestItems: requestItems
             }).promise()
             if (response.Responses !== undefined) {
-                items = items.concat(response.Responses[this.metadata.tableName])
+                items = items.concat(response.Responses[this.getTableName()])
             }
         }
         return items
@@ -220,7 +225,7 @@ export class Repository<Entity extends ObjectLiteral> {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i]
             const requestItems: any = {}
-            requestItems[this.metadata.tableName] = batch.map(write => {
+            requestItems[this.getTableName()] = batch.map(write => {
                 const request: any = {}
                 request[write.type] = {
                     Item: write.item
@@ -234,27 +239,31 @@ export class Repository<Entity extends ObjectLiteral> {
     }
 
     async streamAll () {
-        const stream = new Stream.Readable({
-            objectMode: true
-        })
-        this._streamAll(stream, { limit: 500 }).then(() => {
-            console.log('stream complete.')
-        }).catch((error: any) => {
-            console.log('error streaming dynamodb data', error)
-        })
-        return stream
+        // const stream = new Stream.Readable({
+        //     objectMode: true,
+        //     read (size: number) {
+        //         // todo
+        //     }
+        // })
+        return new DynamodbReadStream<Entity>(this, { limit: 500 })
+        // this._streamAll(stream, { limit: 500 }).then(() => {
+        //     console.log('stream complete.')
+        // }).catch((error: any) => {
+        //     console.log('error streaming dynamodb data', error)
+        // })
+        // return stream
     }
 
-    async _streamAll (stream: Stream.Readable, options: ScanOptions) {
-        let items = await this.scan(options)
-        while (items.length > 0) {
-            items.forEach((item: any) => stream.push(item))
-            if (items.LastEvaluatedKey) {
-                items = await this.scan(options)
-            } else {
-                break
-            }
-        }
-        stream.push(null)
-    }
+    // async _streamAll (stream: Stream.Readable, options: ScanOptions) {
+    //     let items = await this.scan(options)
+    //     while (items.length > 0) {
+    //         items.forEach((item: any) => stream.push(item))
+    //         if (items.LastEvaluatedKey) {
+    //             items = await this.scan(options)
+    //         } else {
+    //             break
+    //         }
+    //     }
+    //     stream.push(null)
+    // }
 }
