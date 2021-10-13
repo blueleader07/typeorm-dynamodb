@@ -142,7 +142,7 @@ export class DynamoDbEntityManager extends EntityManager {
         const params = paramHelper.find(metadata.tableName, options)
         const results = await dbClient.query(params).promise()
         const items: any = results.Items || []
-        return items.length > 0 ? items[0] : null
+        return items.length > 0 ? items[0] : undefined
     }
 
     /**
@@ -152,51 +152,12 @@ export class DynamoDbEntityManager extends EntityManager {
      * Does not check if entity exist in the database, so query will fail if duplicate entity is being inserted.
      * You can execute bulk inserts using this method.
      */
-    async insert<Entity> (target: EntityTarget<Entity>, entity: QueryDeepPartialEntity<Entity> | QueryDeepPartialEntity<Entity>[]): Promise<InsertResult> {
-        // todo: convert entity to its database name
-        const result = new InsertResult()
+    async put<Entity> (target: EntityTarget<Entity>, entity: DeepPartial<Entity> | DeepPartial<Entity>[]): Promise<void> {
         if (Array.isArray(entity)) {
-            // result.raw = await this.insertMany(target, entity)
-            // Object.keys(result.raw.insertedIds).forEach((key: any) => {
-            //     const insertedId = result.raw.insertedIds[key]
-            //     result.generatedMaps.push(this.connection.driver.createGeneratedMap(this.connection.getMetadata(target), insertedId)!)
-            //     result.identifiers.push(this.connection.driver.createGeneratedMap(this.connection.getMetadata(target), insertedId)!)
-            // })
+            await this.putMany(target, entity)
         } else {
-            result.raw = await this.insertOne(target, entity)
-            result.generatedMaps.push(this.connection.driver.createGeneratedMap(this.connection.getMetadata(target), result.raw.insertedId)!)
-            result.identifiers.push(this.connection.driver.createGeneratedMap(this.connection.getMetadata(target), result.raw.insertedId)!)
+            await this.putOne(target, entity)
         }
-
-        return result
-    }
-
-    /**
-     * Updates entity partially. Entity can be found by a given conditions.
-     * Unlike save method executes a primitive operation without cascades, relations and other operations included.
-     * Executes fast and efficient UPDATE query.
-     * Does not check if entity exist in the database.
-     */
-    async update<Entity> (target: EntityTarget<Entity>, criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
-        const result = new UpdateResult()
-
-        if (Array.isArray(criteria)) {
-            const updateResults = await Promise.all((criteria as any[]).map(criteriaItem => {
-                return this.update(target, criteriaItem, partialEntity)
-            }))
-
-            result.raw = updateResults.map(r => r.raw)
-            result.affected = updateResults.map(r => (r.affected || 0)).reduce((c, r) => c + r, 0)
-            result.generatedMaps = updateResults.reduce((c, r) => c.concat(r.generatedMaps), [] as ObjectLiteral[])
-        } else {
-            // const metadata = this.connection.getMetadata(target)
-            // const mongoResult = await this.updateMany(target, this.convertMixedCriteria(metadata, criteria), { $set: partialEntity })
-            //
-            // result.raw = mongoResult
-            // result.affected = mongoResult.modifiedCount
-        }
-
-        return result
     }
 
     /**
@@ -245,36 +206,36 @@ export class DynamoDbEntityManager extends EntityManager {
     //     return this.dynamodbQueryRunner.count(metadata.tableName, query, options)
     // }
 
-    // /**
-    //  * Delete multiple documents on MongoDB.
-    //  */
-    // deleteMany<Entity> (entityClassOrName: EntityTarget<Entity>, query: ObjectLiteral, options?: CollectionOptions): Promise<DeleteWriteOpResultObject> {
-    //     const metadata = this.connection.getMetadata(entityClassOrName)
-    //     return this.dynamodbQueryRunner.deleteMany(metadata.tableName, query, options)
-    // }
+    /**
+     * Delete multiple documents on MongoDB.
+     */
+    deleteMany<Entity> (entityClassOrName: EntityTarget<Entity>, keys: QueryDeepPartialEntity<Entity>[]): Promise<void> {
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        return this.dynamodbQueryRunner.deleteMany(metadata.tableName, keys)
+    }
 
-    // /**
-    //  * Delete a document on MongoDB.
-    //  */
-    // deleteOne<Entity> (entityClassOrName: EntityTarget<Entity>, query: ObjectLiteral, options?: CollectionOptions): Promise<DeleteWriteOpResultObject> {
-    //     const metadata = this.connection.getMetadata(entityClassOrName)
-    //     return this.dynamodbQueryRunner.deleteOne(metadata.tableName, query, options)
-    // }
+    /**
+     * Delete a document on MongoDB.
+     */
+    deleteOne<Entity> (entityClassOrName: EntityTarget<Entity>, key: ObjectLiteral): Promise<void> {
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        return this.dynamodbQueryRunner.deleteOne(metadata.tableName, key)
+    }
 
-    // /**
-    //  * Inserts an array of documents into MongoDB.
-    //  */
-    // insertMany<Entity> (entityClassOrName: EntityTarget<Entity>, docs: ObjectLiteral[], options?: CollectionInsertManyOptions): Promise<InsertWriteOpResult> {
-    //     const metadata = this.connection.getMetadata(entityClassOrName)
-    //     return this.dynamodbQueryRunner.insertMany(metadata.tableName, docs, options)
-    // }
+    /**
+     * Inserts an array of documents into MongoDB.
+     */
+    putMany<Entity> (entityClassOrName: EntityTarget<Entity>, docs: ObjectLiteral[]): Promise<void> {
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        return this.dynamodbQueryRunner.putMany(metadata.tableName, docs)
+    }
 
     /**
      * Inserts a single document into MongoDB.
      */
-    insertOne<Entity> (entityClassOrName: EntityTarget<Entity>, doc: ObjectLiteral): Promise<ObjectLiteral> {
+    putOne<Entity> (entityClassOrName: EntityTarget<Entity>, doc: ObjectLiteral): Promise<ObjectLiteral> {
         const metadata = this.connection.getMetadata(entityClassOrName)
-        return this.dynamodbQueryRunner.insertOne(metadata.tableName, doc)
+        return this.dynamodbQueryRunner.putOne(metadata.tableName, doc)
     }
 
     // /**

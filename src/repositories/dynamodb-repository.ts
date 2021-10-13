@@ -14,6 +14,7 @@ import {
 import { DynamodbReadStream } from '../streams/dynamodb-read-stream'
 import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager'
 import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
@@ -45,13 +46,7 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
     }
 
     async get (key: any) {
-        const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = {
-            TableName: this.metadata.tableName,
-            Key: key
-        }
-        const results = await dbClient.get(params).promise()
-        return results.Item
+        return this.findOne(key)
     }
 
     async find (options: FindOptions) {
@@ -105,31 +100,23 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
         return items
     }
 
-    async put (content: DeepPartial<Entity>) {
-        const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = {
-            TableName: this.metadata.tableName,
-            Item: content
+    async put (content: DeepPartial<Entity> | DeepPartial<Entity[]>) {
+        if (Array.isArray(content)) {
+            return this.putMany(content)
         }
-        await dbClient.put(params).promise()
-        return content
+        return this.putOne(content)
     }
 
-    async insertOne (content: DeepPartial<Entity | Entity[]>) {
-        return this.manager.insertOne(this.metadata.tableName, content)
-        // if (Array.isArray(content)) {
-        //     return this.putAll(content)
-        // }
-        // return this.put(content)
+    async putOne (content: DeepPartial<Entity | Entity[]>) {
+        return this.manager.putOne(this.metadata.tableName, content)
     }
 
-    async deleteById (id: string) {
-        const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = {
-            TableName: this.metadata.tableName,
-            Key: { id: id }
-        }
-        return dbClient.delete(params).promise()
+    async deleteOne (key: QueryDeepPartialEntity<Entity>) {
+        return this.manager.deleteOne(this.metadata.tableName, key)
+    }
+
+    async deleteMany (keys: QueryDeepPartialEntity<Entity>[]) {
+        return this.manager.deleteMany(this.metadata.tableName, keys)
     }
 
     async deleteAll (keyMapper?: any) {
@@ -186,7 +173,7 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
         }
     }
 
-    async putAll (items: any[]) {
+    async putMany (items: any[]) {
         if (items.length > 0) {
             const dbClient = new AWS.DynamoDB.DocumentClient()
             const batches = batchHelper.batch(items)

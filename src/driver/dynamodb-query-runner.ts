@@ -20,6 +20,7 @@ import { View } from 'typeorm/schema-builder/view/View'
 import { ReadStream } from 'typeorm/platform/PlatformTools'
 import { Broadcaster } from 'typeorm/subscriber/Broadcaster'
 import AWS from 'aws-sdk'
+import { batchHelper } from '../helpers/batch-helper'
 
 export class DynamodbQueryRunner implements QueryRunner {
     // -------------------------------------------------------------------------
@@ -107,20 +108,42 @@ export class DynamodbQueryRunner implements QueryRunner {
     // Public Methods
     // -------------------------------------------------------------------------
 
-    // /**
-    //  * Delete multiple documents on DynamoDB.
-    //  */
-    // async deleteMany (collectionName: string, query: ObjectLiteral, options?: CollectionOptions): Promise<DeleteWriteOpResultObject> {
-    //     return await this.getCollection(collectionName).deleteMany(query, options)
-    // }
-    //
-    // /**
-    //  * Delete a document on DynamoDB.
-    //  */
-    // async deleteOne (collectionName: string, query: ObjectLiteral, options?: CollectionOptions): Promise<DeleteWriteOpResultObject> {
-    //     return await this.getCollection(collectionName).deleteOne(query, options)
-    // }
-    //
+    /**
+     * Delete multiple documents on DynamoDB.
+     */
+    async deleteMany (tableName: string, keys: ObjectLiteral[]): Promise<void> {
+        if (keys.length > 0) {
+            const dbClient = new AWS.DynamoDB.DocumentClient()
+            const batches = batchHelper.batch(keys)
+            const promises = batches.map((batch: any) => {
+                const RequestItems: any = {}
+                RequestItems[tableName] = batch.map((Key: any) => {
+                    return {
+                        DeleteRequest: {
+                            Key
+                        }
+                    }
+                })
+                return dbClient.batchWrite({
+                    RequestItems
+                }).promise()
+            })
+            await Promise.all(promises)
+        }
+    }
+
+    /**
+     * Delete a document on DynamoDB.
+     */
+    async deleteOne (tableName: string, key: ObjectLiteral): Promise<void> {
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const params = {
+            TableName: tableName,
+            Key: key
+        }
+        await dbClient.delete(params).promise()
+    }
+
     // /**
     //  * The distinct command returns returns a list of distinct values for the given key across a collection.
     //  */
@@ -204,18 +227,35 @@ export class DynamodbQueryRunner implements QueryRunner {
     // initializeUnorderedBulkOp (collectionName: string, options?: CollectionOptions): UnorderedBulkOperation {
     //     return this.getCollection(collectionName).initializeUnorderedBulkOp(options)
     // }
-    //
-    // /**
-    //  * Inserts an array of documents into DynamoDB.
-    //  */
-    // async insertMany (collectionName: string, docs: ObjectLiteral[], options?: CollectionInsertManyOptions): Promise<InsertWriteOpResult> {
-    //     return await this.getCollection(collectionName).insertMany(docs, options)
-    // }
+
+    /**
+     * Inserts an array of documents into DynamoDB.
+     */
+    async putMany (tableName: string, docs: ObjectLiteral[]): Promise<void> {
+        if (docs.length > 0) {
+            const dbClient = new AWS.DynamoDB.DocumentClient()
+            const batches = batchHelper.batch(docs)
+            const promises = batches.map((batch: any) => {
+                const RequestItems: any = {}
+                RequestItems[tableName] = batch.map((Item: any) => {
+                    return {
+                        PutRequest: {
+                            Item
+                        }
+                    }
+                })
+                return dbClient.batchWrite({
+                    RequestItems
+                }).promise()
+            })
+            await Promise.all(promises)
+        }
+    }
 
     /**
      * Inserts a single document into DynamoDB.
      */
-    async insertOne (tableName: string, doc: ObjectLiteral): Promise<ObjectLiteral> {
+    async putOne (tableName: string, doc: ObjectLiteral): Promise<ObjectLiteral> {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
             TableName: tableName,
