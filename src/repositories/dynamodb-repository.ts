@@ -16,6 +16,7 @@ import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager
 import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 
+// todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
         id: item.id
@@ -100,11 +101,15 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
         return items
     }
 
-    async put (content: DeepPartial<Entity> | DeepPartial<Entity[]>) {
+    async put (content: DeepPartial<Entity> | DeepPartial<Entity>[]) {
         if (Array.isArray(content)) {
             return this.putMany(content)
         }
-        return this.putOne(content)
+        return this.manager.put(this.metadata.tableName, content)
+    }
+
+    async putMany (content: DeepPartial<Entity>[]) {
+        return this.manager.putMany(this.metadata.tableName, content)
     }
 
     async putOne (content: DeepPartial<Entity | Entity[]>) {
@@ -123,19 +128,10 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
         const items = await this.scan({ limit: 500 })
         if (items.length > 0) {
             const itemIds = items.map(keyMapper || DEFAULT_KEY_MAPPER)
-            await this.deleteBatch(itemIds)
+            await this.deleteMany(itemIds)
             await this.deleteAll(keyMapper)
         }
     }
-
-    // async delete (key: any) {
-    //     const dbClient = new AWS.DynamoDB.DocumentClient()
-    //     const params = {
-    //         TableName: this.metadata.tableName,
-    //         Key: key
-    //     }
-    //     return dbClient.delete(params).promise()
-    // }
 
     async deleteAllBy (options: FindOptions, keyMapper?: any) {
         options.limit = options.limit || 500
@@ -146,59 +142,11 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
         const items: any[] = await this.find(options)
         if (items.length > 0) {
             keyMapper = keyMapper || DEFAULT_KEY_MAPPER
-            const keys = items.map(keyMapper)
-            await this.deleteBatch(keys)
+            const keys: any[] = items.map(keyMapper)
+            await this.manager.deleteMany(this.metadata.tableName, keys)
             await this.deleteQueryBatch(options, keyMapper)
         }
     }
-
-    async deleteBatch (keys: any[]) {
-        if (keys.length > 0) {
-            const dbClient = new AWS.DynamoDB.DocumentClient()
-            const batches = batchHelper.batch(keys)
-            const promises = batches.map((batch: any) => {
-                const RequestItems: any = {}
-                RequestItems[this.metadata.tableName] = batch.map((Key: any) => {
-                    return {
-                        DeleteRequest: {
-                            Key
-                        }
-                    }
-                })
-                return dbClient.batchWrite({
-                    RequestItems
-                }).promise()
-            })
-            return Promise.all(promises)
-        }
-    }
-
-    async putMany (items: any[]) {
-        if (items.length > 0) {
-            const dbClient = new AWS.DynamoDB.DocumentClient()
-            const batches = batchHelper.batch(items)
-            const promises = batches.map((batch: any) => {
-                const RequestItems: any = {}
-                RequestItems[this.metadata.tableName] = batch.map((Item: any) => {
-                    return {
-                        PutRequest: {
-                            Item
-                        }
-                    }
-                })
-                return dbClient.batchWrite({
-                    RequestItems
-                }).promise()
-            })
-            return Promise.all(promises)
-        }
-    }
-
-    // async update (options: UpdateOptions) {
-    //     const dbClient = new AWS.DynamoDB.DocumentClient()
-    //     const params = paramHelper.update(this.metadata.tableName, options)
-    //     return dbClient.update(params).promise()
-    // }
 
     async batchRead (keys: any[]) {
         const dbClient = new AWS.DynamoDB.DocumentClient()
