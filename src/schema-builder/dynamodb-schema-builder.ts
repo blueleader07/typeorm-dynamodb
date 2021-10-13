@@ -1,8 +1,8 @@
 import { Connection } from 'typeorm'
 import { SchemaBuilder } from 'typeorm/schema-builder/SchemaBuilder'
 import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
-// import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
-// import { MongodbIndexOptions } from '../driver/mongodb/typings'
+import AWS from 'aws-sdk'
+import { DynamodbDriver } from '../driver/dynamodb-driver'
 
 /**
  * Creates complete tables schemas in the database based on the entity metadatas.
@@ -34,28 +34,33 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
      * Creates complete schemas for the given entity metadatas.
      */
     async build (): Promise<void> {
-        // const queryRunner = this.connection.createQueryRunner() as DynamodbQueryRunner
         const promises: Promise<any>[] = []
+        const db = new AWS.DynamoDB({ apiVersion: '2012-08-10' })
+        const driver: DynamodbDriver = this.connection.driver as DynamodbDriver
         this.connection.entityMetadatas.forEach(metadata => {
-            console.log('metadata', metadata)
-            // metadata.indices.forEach(index => {
-            //     const options: MongodbIndexOptions = Object.assign({}, {
-            //         name: index.name,
-            //         unique: index.isUnique,
-            //         sparse: index.isSparse,
-            //         background: index.isBackground
-            //     }, index.expireAfterSeconds === undefined
-            //         ? {}
-            //         : { expireAfterSeconds: index.expireAfterSeconds })
-            //     promises.push(queryRunner.createCollectionIndex(metadata.tableName, index.columnNamesWithOrderingMap, options))
-            // })
-            // metadata.uniques.forEach(unique => {
-            //     const options = <MongodbIndexOptions>{
-            //         name: unique.name,
-            //         unique: true
-            //     }
-            //     promises.push(queryRunner.createCollectionIndex(metadata.tableName, unique.columnNamesWithOrderingMap, options))
-            // })
+            const attributeDefinitions: any[] = []
+            const keySchema: any[] = []
+            for (let i = 0; i < metadata.primaryColumns.length; i++) {
+                const primaryColumn = metadata.primaryColumns[i]
+                attributeDefinitions.push({
+                    AttributeName: primaryColumn.propertyName,
+                    AttributeType: driver.normalizeDynamodbType(primaryColumn)
+                })
+            }
+            for (let i = 0; i < metadata.primaryColumns.length; i++) {
+                const primaryColumn = metadata.primaryColumns[i]
+                keySchema.push({
+                    AttributeName: primaryColumn.propertyName,
+                    KeyType: 'HASH'
+                })
+            }
+            const schema = {
+                AttributeDefinitions: attributeDefinitions,
+                BillingMode: 'PAY_PER_REQUEST',
+                TableName: metadata.tableName,
+                KeySchema: keySchema
+            }
+            return db.createTable(schema).promise()
         })
         await Promise.all(promises)
     }

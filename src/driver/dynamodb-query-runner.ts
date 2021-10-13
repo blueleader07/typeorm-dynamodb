@@ -3,6 +3,7 @@
  */
 import {
     Connection,
+    ObjectLiteral,
     QueryRunner,
     Table,
     TableCheck,
@@ -18,6 +19,7 @@ import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
 import { View } from 'typeorm/schema-builder/view/View'
 import { ReadStream } from 'typeorm/platform/PlatformTools'
 import { Broadcaster } from 'typeorm/subscriber/Broadcaster'
+import AWS from 'aws-sdk'
 
 export class DynamodbQueryRunner implements QueryRunner {
     // -------------------------------------------------------------------------
@@ -84,6 +86,7 @@ export class DynamodbQueryRunner implements QueryRunner {
     }
 
     broadcaster: Broadcaster;
+
     clearDatabase (database?: string): Promise<void> {
         throw new Error('Method not implemented.')
     }
@@ -208,14 +211,20 @@ export class DynamodbQueryRunner implements QueryRunner {
     // async insertMany (collectionName: string, docs: ObjectLiteral[], options?: CollectionInsertManyOptions): Promise<InsertWriteOpResult> {
     //     return await this.getCollection(collectionName).insertMany(docs, options)
     // }
-    //
-    // /**
-    //  * Inserts a single document into DynamoDB.
-    //  */
-    // async insertOne (collectionName: string, doc: ObjectLiteral, options?: CollectionInsertOneOptions): Promise<InsertOneWriteOpResult> {
-    //     return await this.getCollection(collectionName).insertOne(doc, options)
-    // }
-    //
+
+    /**
+     * Inserts a single document into DynamoDB.
+     */
+    async insertOne (tableName: string, doc: ObjectLiteral): Promise<ObjectLiteral> {
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const params = {
+            TableName: tableName,
+            Item: doc
+        }
+        await dbClient.put(params).promise()
+        return doc
+    }
+
     // /**
     //  * Returns if the collection is a capped collection.
     //  */
@@ -408,7 +417,7 @@ export class DynamodbQueryRunner implements QueryRunner {
     /**
      * Drops the view.
      */
-    async dropView (target: View|string): Promise<void> {
+    async dropView (target: View | string): Promise<void> {
         throw new TypeORMError('Schema update queries are not supported by DynamoDB driver.')
     }
 

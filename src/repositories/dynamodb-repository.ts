@@ -1,5 +1,4 @@
 import { FindOptions } from '../models/find-options'
-import { UpdateOptions } from '../models/update-options'
 import { paramHelper } from '../helpers/param-helper'
 import AWS from 'aws-sdk'
 import { batchHelper } from '../helpers/batch-helper'
@@ -9,7 +8,7 @@ import {
     DeepPartial,
     EntityMetadata, FindConditions, FindOneOptions,
     ObjectID,
-    ObjectLiteral,
+    ObjectLiteral, Repository,
     SelectQueryBuilder
 } from 'typeorm'
 import { DynamodbReadStream } from '../streams/dynamodb-read-stream'
@@ -22,7 +21,7 @@ const DEFAULT_KEY_MAPPER = (item: any) => {
     }
 }
 
-export class Repository<Entity extends ObjectLiteral> {
+export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository<Entity> {
     /**
      * Entity Manager used by this repository.
      */
@@ -116,11 +115,12 @@ export class Repository<Entity extends ObjectLiteral> {
         return content
     }
 
-    async insert (content: DeepPartial<Entity | Entity[]>) {
-        if (Array.isArray(content)) {
-            return this.putAll(content)
-        }
-        return this.put(content)
+    async insertOne (content: DeepPartial<Entity | Entity[]>) {
+        return this.manager.insertOne(this.metadata.tableName, content)
+        // if (Array.isArray(content)) {
+        //     return this.putAll(content)
+        // }
+        // return this.put(content)
     }
 
     async deleteById (id: string) {
@@ -141,14 +141,14 @@ export class Repository<Entity extends ObjectLiteral> {
         }
     }
 
-    async delete (key: any) {
-        const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = {
-            TableName: this.metadata.tableName,
-            Key: key
-        }
-        return dbClient.delete(params).promise()
-    }
+    // async delete (key: any) {
+    //     const dbClient = new AWS.DynamoDB.DocumentClient()
+    //     const params = {
+    //         TableName: this.metadata.tableName,
+    //         Key: key
+    //     }
+    //     return dbClient.delete(params).promise()
+    // }
 
     async deleteAllBy (options: FindOptions, keyMapper?: any) {
         options.limit = options.limit || 500
@@ -207,11 +207,11 @@ export class Repository<Entity extends ObjectLiteral> {
         }
     }
 
-    async update (options: UpdateOptions) {
-        const dbClient = new AWS.DynamoDB.DocumentClient()
-        const params = paramHelper.update(this.metadata.tableName, options)
-        return dbClient.update(params).promise()
-    }
+    // async update (options: UpdateOptions) {
+    //     const dbClient = new AWS.DynamoDB.DocumentClient()
+    //     const params = paramHelper.update(this.metadata.tableName, options)
+    //     return dbClient.update(params).promise()
+    // }
 
     async batchRead (keys: any[]) {
         const dbClient = new AWS.DynamoDB.DocumentClient()

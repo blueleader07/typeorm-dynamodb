@@ -1,13 +1,13 @@
 import { Stream } from 'stream'
 import { ScanOptions } from '../models/scan-options'
-import { Repository } from '../repositories/repository'
+import { DynamodbRepository } from '../repositories/dynamodb-repository'
 import { CustomError } from '@lmig/legal-nodejs-utils'
 
 export class DynamodbReadStream<Entity> extends Stream.Readable {
-    repository: Repository<Entity>
+    repository: DynamodbRepository<Entity>
     options: ScanOptions
 
-    constructor (repository: Repository<Entity>, options: ScanOptions) {
+    constructor (repository: DynamodbRepository<Entity>, options: ScanOptions) {
         super()
         this.repository = repository
         this.options = options

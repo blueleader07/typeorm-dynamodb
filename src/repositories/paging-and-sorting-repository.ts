@@ -1,7 +1,7 @@
 import { FindOptions } from '../models/find-options'
 import { commonUtils, Page, Pageable } from '@lmig/legal-nodejs-utils'
 import { DynamoPage } from '../models/dynamo-page'
-import { Repository } from './repository'
+import { DynamodbRepository } from './dynamodb-repository'
 
 const encode = (json: object) => {
     return Buffer.from(JSON.stringify(json)).toString('base64')
@@ -11,7 +11,7 @@ const decode = (data: string) => {
     return JSON.parse(Buffer.from(data, 'base64').toString('ascii'))
 }
 
-export class PagingAndSortingRepository <T> extends Repository<T> {
+export class PagingAndSortingRepository <T> extends DynamodbRepository<T> {
     /**
      * Queries by page size and exclusiveStartKey
      */

@@ -17,6 +17,7 @@ import { SchemaBuilder } from 'typeorm/schema-builder/SchemaBuilder'
 import { View } from 'typeorm/schema-builder/view/View'
 import { DynamodbSchemaBuilder } from '../schema-builder/dynamodb-schema-builder'
 import { DynamodbQueryRunner } from './dynamodb-query-runner'
+import { ObjectUtils } from 'typeorm/util/ObjectUtils'
 
 /**
  * Organizes communication with MongoDB.
@@ -93,7 +94,15 @@ export class DynamodbDriver implements Driver {
     }
 
     connect (): Promise<void> {
-        return Promise.resolve()
+        return new Promise((resolve, reject) => {
+            try {
+                this.queryRunner = new DynamodbQueryRunner(this.connection, undefined)
+                ObjectUtils.assign(this.queryRunner, { manager: this.connection.manager })
+                resolve()
+            } catch (error) {
+                reject(error)
+            }
+        })
     }
 
     afterConnect (): Promise<void> {
@@ -141,6 +150,19 @@ export class DynamodbDriver implements Driver {
 
     prepareHydratedValue (value: any, column: ColumnMetadata) {
         throw new Error('Method not implemented.')
+    }
+
+    normalizeDynamodbType (column: { type?: string | BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor | undefined; length?: string | number | undefined; precision?: number | null | undefined; scale?: number | undefined; isArray?: boolean | undefined; }): string {
+        const type = this.normalizeType(column)
+        if (type === 'string') {
+            return 'S'
+        } else if (type === 'number') {
+            return 'N'
+        } else if (type === 'binary') {
+            return 'B'
+        } else {
+            throw new Error(`Type not supported by DynamoDB driver: ${type}`)
+        }
     }
 
     normalizeType (column: { type?: string | BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor | undefined; length?: string | number | undefined; precision?: number | null | undefined; scale?: number | undefined; isArray?: boolean | undefined; }): string {
