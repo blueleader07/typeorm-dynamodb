@@ -1,8 +1,8 @@
 import { Connection } from 'typeorm'
 import { SchemaBuilder } from 'typeorm/schema-builder/SchemaBuilder'
 import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
-import AWS from 'aws-sdk'
 import { DynamodbDriver } from '../driver/dynamodb-driver'
+import { PlatformTools } from 'typeorm/platform/PlatformTools'
 
 /**
  * Creates complete tables schemas in the database based on the entity metadatas.
@@ -34,10 +34,12 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
      * Creates complete schemas for the given entity metadatas.
      */
     async build (): Promise<void> {
-        const promises: Promise<any>[] = []
+        const AWS = PlatformTools.load('aws-sdk')
         const db = new AWS.DynamoDB({ apiVersion: '2012-08-10' })
         const driver: DynamodbDriver = this.connection.driver as DynamodbDriver
-        this.connection.entityMetadatas.forEach(metadata => {
+        const metadatas = this.connection.entityMetadatas
+        for (let i = 0; i < metadatas.length; i++) {
+            const metadata = metadatas[i]
             const attributeDefinitions: any[] = []
             const keySchema: any[] = []
             for (let i = 0; i < metadata.primaryColumns.length; i++) {
@@ -60,9 +62,17 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
                 TableName: metadata.tableName,
                 KeySchema: keySchema
             }
-            return db.createTable(schema).promise()
-        })
-        await Promise.all(promises)
+            try {
+                await db.createTable(schema).promise()
+            } catch (error) {
+                const _error: any = error
+                if (_error && _error.code && _error.code === 'ResourceInUseException') {
+                    PlatformTools.logInfo('table already exists: ', metadata.tableName)
+                } else {
+                    PlatformTools.logError('error creating table: ', error)
+                }
+            }
+        }
     }
 
     /**

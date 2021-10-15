@@ -18,7 +18,7 @@ export class PagingAndSortingRepository <T> extends DynamodbRepository<T> {
     async findPage (options: FindOptions, pageable: Pageable) {
         options.limit = commonUtils.isEmpty(pageable.pageSize) ? 15 : pageable.pageSize
         options.exclusiveStartKey = pageable.exclusiveStartKey ? decode(pageable.exclusiveStartKey) : undefined
-        const items = await this.find(options)
+        const items: any = await this.find(options)
         return new DynamoPage(items, pageable, encode(items.lastEvaluatedKey))
     }
 

@@ -17,10 +17,10 @@ import {
 import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager'
 import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
 import { View } from 'typeorm/schema-builder/view/View'
-import { ReadStream } from 'typeorm/platform/PlatformTools'
+import { PlatformTools, ReadStream } from 'typeorm/platform/PlatformTools'
 import { Broadcaster } from 'typeorm/subscriber/Broadcaster'
-import AWS from 'aws-sdk'
 import { batchHelper } from '../helpers/batch-helper'
+import AWS from 'aws-sdk'
 
 export class DynamodbQueryRunner implements QueryRunner {
     // -------------------------------------------------------------------------
@@ -88,8 +88,19 @@ export class DynamodbQueryRunner implements QueryRunner {
 
     broadcaster: Broadcaster;
 
-    clearDatabase (database?: string): Promise<void> {
-        throw new Error('Method not implemented.')
+    async clearDatabase (database?: string): Promise<void> {
+        const AWS = PlatformTools.load('aws-sdk')
+        const db = new AWS.DynamoDB({ apiVersion: '2012-08-10' })
+        const tables = await db.listTables()
+        for (let i = 0; i < tables.length; i++) {
+            const table = tables[i]
+            const tableName = table.TableName
+            if (tableName.startsWith(database)) {
+                await db.deleteTable({
+                    TableName: table.TableName
+                })
+            }
+        }
     }
 
     stream (query: string, parameters?: any[], onEnd?: Function, onError?: Function): Promise<ReadStream> {
@@ -113,6 +124,7 @@ export class DynamodbQueryRunner implements QueryRunner {
      */
     async deleteMany (tableName: string, keys: ObjectLiteral[]): Promise<void> {
         if (keys.length > 0) {
+            const AWS = PlatformTools.load('aws-sdk')
             const dbClient = new AWS.DynamoDB.DocumentClient()
             const batches = batchHelper.batch(keys)
             const promises = batches.map((batch: any) => {
@@ -136,6 +148,7 @@ export class DynamodbQueryRunner implements QueryRunner {
      * Delete a document on DynamoDB.
      */
     async deleteOne (tableName: string, key: ObjectLiteral): Promise<void> {
+        const AWS = PlatformTools.load('aws-sdk')
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
             TableName: tableName,
@@ -144,95 +157,12 @@ export class DynamodbQueryRunner implements QueryRunner {
         await dbClient.delete(params).promise()
     }
 
-    // /**
-    //  * The distinct command returns returns a list of distinct values for the given key across a collection.
-    //  */
-    // async distinct (collectionName: string, key: string, query: ObjectLiteral, options?: { readPreference?: ReadPreference | string }): Promise<any> {
-    //     return await this.getCollection(collectionName).distinct(key, query, options)
-    // }
-    //
-    // /**
-    //  * Drops an index from this collection.
-    //  */
-    // async dropCollectionIndex (collectionName: string, indexName: string, options?: CollectionOptions): Promise<any> {
-    //     return await this.getCollection(collectionName).dropIndex(indexName, options)
-    // }
-    //
-    // /**
-    //  * Drops all indexes from the collection.
-    //  */
-    // async dropCollectionIndexes (collectionName: string): Promise<any> {
-    //     return await this.getCollection(collectionName).dropIndexes()
-    // }
-    //
-    // /**
-    //  * Find a document and delete it in one atomic operation, requires a write lock for the duration of the operation.
-    //  */
-    // async findOneAndDelete (collectionName: string, query: ObjectLiteral, options?: { projection?: Object, sort?: Object, maxTimeMS?: number }): Promise<FindAndModifyWriteOpResultObject> {
-    //     return await this.getCollection(collectionName).findOneAndDelete(query, options)
-    // }
-    //
-    // /**
-    //  * Find a document and replace it in one atomic operation, requires a write lock for the duration of the operation.
-    //  */
-    // async findOneAndReplace (collectionName: string, query: ObjectLiteral, replacement: Object, options?: FindOneAndReplaceOption): Promise<FindAndModifyWriteOpResultObject> {
-    //     return await this.getCollection(collectionName).findOneAndReplace(query, replacement, options)
-    // }
-    //
-    // /**
-    //  * Find a document and update it in one atomic operation, requires a write lock for the duration of the operation.
-    //  */
-    // async findOneAndUpdate (collectionName: string, query: ObjectLiteral, update: Object, options?: FindOneAndReplaceOption): Promise<FindAndModifyWriteOpResultObject> {
-    //     return await this.getCollection(collectionName).findOneAndUpdate(query, update, options)
-    // }
-    //
-    // /**
-    //  * Run a group command across a collection.
-    //  */
-    // async group (collectionName: string, keys: Object | Array<any> | Function | Code, condition: Object, initial: Object, reduce: Function | Code, finalize: Function | Code, command: boolean, options?: { readPreference?: ReadPreference | string }): Promise<any> {
-    //     return await this.getCollection(collectionName).group(keys, condition, initial, reduce, finalize, command, options)
-    // }
-    //
-    // /**
-    //  * Retrieve all the indexes on the collection.
-    //  */
-    // async collectionIndexes (collectionName: string): Promise<any> {
-    //     return await this.getCollection(collectionName).indexes()
-    // }
-    //
-    // /**
-    //  * Retrieve all the indexes on the collection.
-    //  */
-    // async collectionIndexExists (collectionName: string, indexes: string | string[]): Promise<boolean> {
-    //     return await this.getCollection(collectionName).indexExists(indexes)
-    // }
-    //
-    // /**
-    //  * Retrieves this collections index info.
-    //  */
-    // async collectionIndexInformation (collectionName: string, options?: { full: boolean }): Promise<any> {
-    //     return await this.getCollection(collectionName).indexInformation(options)
-    // }
-    //
-    // /**
-    //  * Initiate an In order bulk write operation, operations will be serially executed in the order they are added, creating a new operation for each switch in types.
-    //  */
-    // initializeOrderedBulkOp (collectionName: string, options?: CollectionOptions): OrderedBulkOperation {
-    //     return this.getCollection(collectionName).initializeOrderedBulkOp(options)
-    // }
-    //
-    // /**
-    //  * Initiate a Out of order batch write operation. All operations will be buffered into insert/update/remove commands executed out of order.
-    //  */
-    // initializeUnorderedBulkOp (collectionName: string, options?: CollectionOptions): UnorderedBulkOperation {
-    //     return this.getCollection(collectionName).initializeUnorderedBulkOp(options)
-    // }
-
     /**
      * Inserts an array of documents into DynamoDB.
      */
     async putMany (tableName: string, docs: ObjectLiteral[]): Promise<void> {
         if (docs.length > 0) {
+            const AWS = PlatformTools.load('aws-sdk')
             const dbClient = new AWS.DynamoDB.DocumentClient()
             const batches = batchHelper.batch(docs)
             const promises = batches.map((batch: any) => {
@@ -256,6 +186,7 @@ export class DynamodbQueryRunner implements QueryRunner {
      * Inserts a single document into DynamoDB.
      */
     async putOne (tableName: string, doc: ObjectLiteral): Promise<ObjectLiteral> {
+        const AWS = PlatformTools.load('aws-sdk')
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const params = {
             TableName: tableName,
@@ -681,11 +612,12 @@ export class DynamodbQueryRunner implements QueryRunner {
     /**
      * Drops collection.
      */
-    async clearTable (collectionName: string): Promise<void> {
-        // TODO ?
-        // await this.databaseConnection
-        //     .db(this.connection.driver.database!)
-        //     .dropCollection(collectionName)
+    clearTable (tableName: string): Promise<void> {
+        const AWS = PlatformTools.load('aws-sdk')
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        return dbClient.deleteTable({
+            TableName: tableName
+        })
     }
 
     /**

@@ -2,31 +2,34 @@
  * Entity manager supposed to work with any entity, automatically find its repository and call its methods,
  * whatever entity type are you passing.
  *
- * This implementation is used for MongoDB driver which has some specifics in its EntityManager.
+ * This implementation is used for DynamoDB driver which has some specifics in its EntityManager.
  */
 import {
     Connection,
     DeepPartial,
-    DeleteResult,
     EntityManager,
-    EntityMetadata,
     EntityTarget,
-    FindConditions,
-    FindManyOptions,
     FindOneOptions,
     FindOptionsUtils,
-    InsertResult,
     ObjectID,
-    ObjectLiteral,
-    UpdateResult
+    ObjectLiteral
 } from 'typeorm'
 import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
 import { DynamodbDriver } from '../driver/dynamodb-driver'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
-import AWS from 'aws-sdk'
 import { paramHelper } from '../helpers/param-helper'
 import { FindOptions } from '../models/find-options'
+import { batchHelper } from '../helpers/batch-helper'
+import { BatchWriteItem } from '../models/batch-write-item'
+import { ScanOptions } from '../models/scan-options'
+
+// todo: we should look at the @PrimaryKey on the entity
+const DEFAULT_KEY_MAPPER = (item: any) => {
+    return {
+        id: item.id
+    }
+}
 
 export class DynamoDbEntityManager extends EntityManager {
     get dynamodbQueryRunner (): DynamodbQueryRunner {
@@ -45,79 +48,78 @@ export class DynamoDbEntityManager extends EntityManager {
     // Overridden Methods
     // -------------------------------------------------------------------------
 
-    // /**
-    //  * Finds entities that match given find options or conditions.
-    //  */
-    // async find<Entity> (entityClassOrName: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<Entity[]> {
-    //     const query = this.convertFindManyOptionsOrConditionsToDynamodbQuery(optionsOrConditions)
-    //     const cursor = await this.createEntityCursor(entityClassOrName, query)
-    //     if (FindOptionsUtils.isFindManyOptions(optionsOrConditions)) {
-    //         if (optionsOrConditions.select) { cursor.project(this.convertFindOptionsSelectToProjectCriteria(optionsOrConditions.select)) }
-    //         if (optionsOrConditions.skip) { cursor.skip(optionsOrConditions.skip) }
-    //         if (optionsOrConditions.take) { cursor.limit(optionsOrConditions.take) }
-    //         if (optionsOrConditions.order) { cursor.sort(this.convertFindOptionsOrderToOrderCriteria(optionsOrConditions.order)) }
-    //     }
-    //     return cursor.toArray()
-    // }
+    createDefaultKeyMapper<Entity> (target: EntityTarget<Entity>) {
+        const metadata = this.connection.getMetadata(target)
 
-    // /**
-    //  * Finds entities that match given find options or conditions.
-    //  * Also counts all entities that match given conditions,
-    //  * but ignores pagination settings (from and take options).
-    //  */
-    // async findAndCount<Entity> (entityClassOrName: EntityTarget<Entity>, optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<[Entity[], number]> {
-    //     const query = this.convertFindManyOptionsOrConditionsToDynamodbQuery(optionsOrConditions)
-    //     const cursor = await this.createEntityCursor(entityClassOrName, query)
-    //     if (FindOptionsUtils.isFindManyOptions(optionsOrConditions)) {
-    //         if (optionsOrConditions.select) { cursor.project(this.convertFindOptionsSelectToProjectCriteria(optionsOrConditions.select)) }
-    //         if (optionsOrConditions.skip) { cursor.skip(optionsOrConditions.skip) }
-    //         if (optionsOrConditions.take) { cursor.limit(optionsOrConditions.take) }
-    //         if (optionsOrConditions.order) { cursor.sort(this.convertFindOptionsOrderToOrderCriteria(optionsOrConditions.order)) }
-    //     }
-    //     const [results, count] = await Promise.all<any>([
-    //         cursor.toArray(),
-    //         this.count(entityClassOrName, query)
-    //     ])
-    //     return [results, parseInt(count)]
-    // }
+        return (entity: ObjectLiteral) => {
+            const keys: any = {}
+            for (let i = 0; i < metadata.primaryColumns.length; i++) {
+                const primaryColumn = metadata.primaryColumns[i]
+                const propertyName = primaryColumn.propertyName
+                keys[propertyName] = entity[propertyName]
+            }
+            return keys
+        }
+    }
 
-    // /**
-    //  * Finds entities by ids.
-    //  * Optionally find options can be applied.
-    //  */
-    // async findByIds<Entity> (entityClassOrName: EntityTarget<Entity>, ids: any[], optionsOrConditions?: FindManyOptions<Entity> | Partial<Entity>): Promise<Entity[]> {
-    //     const metadata = this.connection.getMetadata(entityClassOrName)
-    //     const query = this.convertFindManyOptionsOrConditionsToMongodbQuery(optionsOrConditions) || {}
-    //     const objectIdInstance = PlatformTools.load('mongodb').ObjectID
-    //     query._id = {
-    //         $in: ids.map(id => {
-    //             if (typeof id === 'string') {
-    //                 return new objectIdInstance(id)
-    //             }
-    //
-    //             if (typeof id === 'object') {
-    //                 if (id instanceof objectIdInstance) {
-    //                     return id
-    //                 }
-    //
-    //                 const propertyName = metadata.objectIdColumn!.propertyName
-    //
-    //                 if (id[propertyName] instanceof objectIdInstance) {
-    //                     return id[propertyName]
-    //                 }
-    //             }
-    //         })
-    //     }
-    //
-    //     const cursor = await this.createEntityCursor(entityClassOrName, query)
-    //     if (FindOptionsUtils.isFindManyOptions(optionsOrConditions)) {
-    //         if (optionsOrConditions.select) { cursor.project(this.convertFindOptionsSelectToProjectCriteria(optionsOrConditions.select)) }
-    //         if (optionsOrConditions.skip) { cursor.skip(optionsOrConditions.skip) }
-    //         if (optionsOrConditions.take) { cursor.limit(optionsOrConditions.take) }
-    //         if (optionsOrConditions.order) { cursor.sort(this.convertFindOptionsOrderToOrderCriteria(optionsOrConditions.order)) }
-    //     }
-    //     return await cursor.toArray()
-    // }
+    /**
+     * Finds entities that match given find options or conditions.
+     */
+    async find<Entity> (entityClassOrName: EntityTarget<Entity>, options?: FindOptions | any): Promise<Entity[]> {
+        if (options) {
+            const AWS = PlatformTools.load('aws-sdk')
+            const dbClient = new AWS.DynamoDB.DocumentClient()
+            const metadata = this.connection.getMetadata(entityClassOrName)
+            const params = paramHelper.find(metadata.tableName, options)
+            const results = await dbClient.query(params).promise()
+            const items: any = results.Items || []
+            items.lastEvaluatedKey = results.LastEvaluatedKey
+            return items
+        }
+        return []
+    }
+
+    /**
+     * Finds entities that match given find options or conditions.
+     */
+    async findAll<Entity> (entityClassOrName: EntityTarget<Entity>, options: FindOptions): Promise<Entity[]> {
+        delete options.limit
+        const AWS = PlatformTools.load('aws-sdk')
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        const params = paramHelper.find(metadata.tableName, options)
+        let items: any[] = []
+        let results = await dbClient.query(params).promise()
+        items = items.concat(results.Items || [])
+        while (results.LastEvaluatedKey) {
+            params.ExclusiveStartKey = results.LastEvaluatedKey
+            results = await dbClient.query(params).promise()
+            items = items.concat(results.Items || [])
+        }
+        return items
+    }
+
+    async scan<Entity> (entityClassOrName: EntityTarget<Entity>, options: ScanOptions) {
+        const AWS = PlatformTools.load('aws-sdk')
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        const params: any = {
+            TableName: metadata.tableName
+            // IndexName: findOptions.index,
+            // KeyConditionExpression: FindOptions.toKeyConditionExpression(findOptions.where),
+            // ExpressionAttributeValues: FindOptions.toExpressionAttributeValues(findOptions.where)
+        }
+        if (options.limit) {
+            params.Limit = options.limit
+        }
+        if (options.exclusiveStartKey) {
+            params.ExclusiveStartKey = options.exclusiveStartKey
+        }
+        const results: any = await dbClient.scan(params).promise()
+        const items = results.Items || []
+        items.LastEvaluatedKey = results.LastEvaluatedKey
+        return items
+    }
 
     /**
      * Finds first entity that matches given conditions and/or find options.
@@ -125,6 +127,7 @@ export class DynamoDbEntityManager extends EntityManager {
     async findOne<Entity> (entityClassOrName: EntityTarget<Entity>,
         optionsOrConditions?: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindOneOptions<Entity> | DeepPartial<Entity>,
         maybeOptions?: FindOneOptions<Entity>): Promise<Entity | undefined> {
+        const AWS = PlatformTools.load('aws-sdk')
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const id = typeof optionsOrConditions === 'string' ? optionsOrConditions : undefined
@@ -146,7 +149,7 @@ export class DynamoDbEntityManager extends EntityManager {
     }
 
     /**
-     * Inserts a given entity into the database.
+     * Put a given entity into the database.
      * Unlike save method executes a primitive operation without cascades, relations and other operations included.
      * Executes fast and efficient INSERT query.
      * Does not check if entity exist in the database, so query will fail if duplicate entity is being inserted.
@@ -160,54 +163,34 @@ export class DynamoDbEntityManager extends EntityManager {
         }
     }
 
-    /**
-     * Deletes entities by a given conditions.
-     * Unlike save method executes a primitive operation without cascades, relations and other operations included.
-     * Executes fast and efficient DELETE query.
-     * Does not check if entity exist in the database.
-     */
-    async delete<Entity> (target: EntityTarget<Entity>, criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>): Promise<DeleteResult> {
-        const result = new DeleteResult()
-
-        if (Array.isArray(criteria)) {
-            const deleteResults = await Promise.all((criteria as any[]).map(criteriaItem => {
-                return this.delete(target, criteriaItem)
-            }))
-
-            result.raw = deleteResults.map(r => r.raw)
-            result.affected = deleteResults.map(r => (r.affected || 0)).reduce((c, r) => c + r, 0)
-        } else {
-            // const mongoResult = await this.deleteMany(target, this.convertMixedCriteria(this.connection.getMetadata(target), criteria))
-            //
-            // result.raw = mongoResult
-            // result.affected = mongoResult.deletedCount
+    async deleteAll <Entity> (target: EntityTarget<Entity>, options: FindOptions, keyMapper?: any) {
+        let items = await this.scan(target, { limit: 500 })
+        while (items.length > 0) {
+            const itemIds = items.map(keyMapper || this.createDefaultKeyMapper(target))
+            await this.deleteMany(target, itemIds)
+            await this.deleteAll(target, keyMapper)
+            items = await this.scan(target, { limit: 500 })
         }
-
-        return result
     }
 
-    // -------------------------------------------------------------------------
-    // Public Methods
-    // -------------------------------------------------------------------------
+    deleteAllBy <Entity> (target: EntityTarget<Entity>, options: FindOptions, keyMapper?: any) {
+        options.limit = options.limit || 500
+        return this.deleteQueryBatch(target, options, keyMapper)
+    }
 
-    // /**
-    //  * Perform a bulkWrite operation without a fluent API.
-    //  */
-    // bulkWrite<Entity> (entityClassOrName: EntityTarget<Entity>, operations: ObjectLiteral[], options?: CollectionBulkWriteOptions): Promise<BulkWriteOpResultObject> {
-    //     const metadata = this.connection.getMetadata(entityClassOrName)
-    //     return this.dynamodbQueryRunner.bulkWrite(metadata.tableName, operations, options)
-    // }
-
-    // /**
-    //  * Count number of matching documents in the db to a query.
-    //  */
-    // count<Entity> (entityClassOrName: EntityTarget<Entity>, query?: ObjectLiteral, options?: MongoCountPreferences): Promise<number> {
-    //     const metadata = this.connection.getMetadata(entityClassOrName)
-    //     return this.dynamodbQueryRunner.count(metadata.tableName, query, options)
-    // }
+    async deleteQueryBatch <Entity> (target: EntityTarget<Entity>, options: FindOptions, keyMapper?: any) {
+        const items: any[] = await this.find(target, options)
+        if (items.length > 0) {
+            const metadata = this.connection.getMetadata(target)
+            keyMapper = keyMapper || DEFAULT_KEY_MAPPER
+            const keys: any[] = items.map(keyMapper)
+            await this.deleteMany(metadata.tableName, keys)
+            await this.deleteQueryBatch(target, options, keyMapper)
+        }
+    }
 
     /**
-     * Delete multiple documents on MongoDB.
+     * Delete multiple documents on DynamoDB.
      */
     deleteMany<Entity> (entityClassOrName: EntityTarget<Entity>, keys: QueryDeepPartialEntity<Entity>[]): Promise<void> {
         const metadata = this.connection.getMetadata(entityClassOrName)
@@ -215,7 +198,7 @@ export class DynamoDbEntityManager extends EntityManager {
     }
 
     /**
-     * Delete a document on MongoDB.
+     * Delete a document on DynamoDB.
      */
     deleteOne<Entity> (entityClassOrName: EntityTarget<Entity>, key: ObjectLiteral): Promise<void> {
         const metadata = this.connection.getMetadata(entityClassOrName)
@@ -223,7 +206,7 @@ export class DynamoDbEntityManager extends EntityManager {
     }
 
     /**
-     * Inserts an array of documents into MongoDB.
+     * Put an array of documents into DynamoDB.
      */
     putMany<Entity> (entityClassOrName: EntityTarget<Entity>, docs: ObjectLiteral[]): Promise<void> {
         const metadata = this.connection.getMetadata(entityClassOrName)
@@ -231,194 +214,59 @@ export class DynamoDbEntityManager extends EntityManager {
     }
 
     /**
-     * Inserts a single document into MongoDB.
+     * Put a single document into DynamoDB.
      */
     putOne<Entity> (entityClassOrName: EntityTarget<Entity>, doc: ObjectLiteral): Promise<ObjectLiteral> {
         const metadata = this.connection.getMetadata(entityClassOrName)
         return this.dynamodbQueryRunner.putOne(metadata.tableName, doc)
     }
 
-    // /**
-    //  * Update multiple documents on MongoDB.
-    //  */
-    // updateMany<Entity> (entityClassOrName: EntityTarget<Entity>, query: ObjectLiteral, update: ObjectLiteral, options?: { upsert?: boolean, w?: any, wtimeout?: number, j?: boolean }): Promise<UpdateWriteOpResult> {
-    //     const metadata = this.connection.getMetadata(entityClassOrName)
-    //     return this.dynamodbQueryRunner.updateMany(metadata.tableName, query, update, options)
-    // }
-
-    // /**
-    //  * Update a single document on MongoDB.
-    //  */
-    // updateOne<Entity> (entityClassOrName: EntityTarget<Entity>, query: ObjectLiteral, update: ObjectLiteral, options?: ReplaceOneOptions): Promise<UpdateWriteOpResult> {
-    //     const metadata = this.connection.getMetadata(entityClassOrName)
-    //     return this.dynamodbQueryRunner.updateOne(metadata.tableName, query, update, options)
-    // }
-
-    // -------------------------------------------------------------------------
-    // Protected Methods
-    // -------------------------------------------------------------------------
-
     /**
-     * Converts FindManyOptions to mongodb query.
+     * Read from DynamoDB in batches.
      */
-    protected convertFindManyOptionsOrConditionsToDynamodbQuery<Entity> (optionsOrConditions: FindManyOptions<Entity> | Partial<Entity> | undefined): ObjectLiteral | undefined {
-        if (!optionsOrConditions) {
-            return undefined
-        }
-
-        // If where condition is passed as a string which contains sql we have to ignore
-        // as mongo is not a sql database
-        if (FindOptionsUtils.isFindManyOptions<Entity>(optionsOrConditions)) {
-            return typeof optionsOrConditions.where === 'string'
-                ? {}
-                : optionsOrConditions.where
-        }
-
-        return optionsOrConditions
-    }
-
-    /**
-     * Converts FindOneOptions to mongodb query.
-     */
-    protected convertFindOneOptionsOrConditionsToDynamoDbQuery<Entity> (optionsOrConditions: FindOneOptions<Entity> | Partial<Entity> | undefined): ObjectLiteral | undefined {
-        if (!optionsOrConditions) {
-            return undefined
-        }
-
-        // If where condition is passed as a string which contains sql we have to ignore
-        // as mongo is not a sql database
-        if (FindOptionsUtils.isFindOneOptions<Entity>(optionsOrConditions)) {
-            return typeof optionsOrConditions.where === 'string'
-                ? {}
-                : optionsOrConditions.where
-        }
-
-        return optionsOrConditions
-    }
-
-    /**
-     * Converts FindOptions into mongodb order by criteria.
-     */
-    protected convertFindOptionsOrderToOrderCriteria (order: ObjectLiteral) {
-        return Object.keys(order).reduce((orderCriteria, key) => {
-            switch (order[key]) {
-            case 'DESC':
-                orderCriteria[key] = -1
-                break
-            case 'ASC':
-                orderCriteria[key] = 1
-                break
-            default:
-                orderCriteria[key] = order[key]
+    async batchRead<Entity> (entityClassOrName: EntityTarget<Entity>, keys: ObjectLiteral[]) {
+        const AWS = PlatformTools.load('aws-sdk')
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        const batches = batchHelper.batch(keys, 100)
+        let items: any[] = []
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i]
+            const requestItems: any = {}
+            requestItems[metadata.tableName] = {
+                Keys: batch
             }
-            return orderCriteria
-        }, {} as ObjectLiteral)
-    }
-
-    /**
-     * Converts FindOptions into mongodb select by criteria.
-     */
-    protected convertFindOptionsSelectToProjectCriteria (selects: (keyof any)[]) {
-        return selects.reduce((projectCriteria, key) => {
-            projectCriteria[key] = 1
-            return projectCriteria
-        }, {} as any)
-    }
-
-    /**
-     * Ensures given id is an id for query.
-     */
-    protected convertMixedCriteria (metadata: EntityMetadata, idMap: any): ObjectLiteral {
-        const objectIdInstance = PlatformTools.load('mongodb').ObjectID
-
-        // check first if it's ObjectId compatible:
-        // string, number, Buffer, ObjectId or ObjectId-like
-        if (objectIdInstance.isValid(idMap)) {
-            return {
-                _id: new objectIdInstance(idMap)
+            const response = await dbClient.batchGet({
+                RequestItems: requestItems
+            }).promise()
+            if (response.Responses !== undefined) {
+                items = items.concat(response.Responses[metadata.tableName])
             }
         }
+        return items
+    }
 
-        // if it's some other type of object build a query from the columns
-        // this check needs to be after the ObjectId check, because a valid ObjectId is also an Object instance
-        if (idMap instanceof Object) {
-            return metadata.columns.reduce((query, column) => {
-                const columnValue = column.getEntityValue(idMap)
-                if (columnValue !== undefined) {
-                    query[column.databasePath] = columnValue
+    /**
+     * Put an array of documents into DynamoDB in batches.
+     */
+    async batchWrite<Entity> (entityClassOrName: EntityTarget<Entity>, writes: BatchWriteItem[]) {
+        const AWS = PlatformTools.load('aws-sdk')
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        const batches = batchHelper.batch(writes, 25)
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i]
+            const requestItems: any = {}
+            requestItems[metadata.tableName] = batch.map(write => {
+                const request: any = {}
+                request[write.type] = {
+                    Item: write.item
                 }
-                return query
-            }, {} as any)
-        }
-
-        // last resort: try to convert it to an ObjectID anyway
-        // most likely it will fail, but we want to be backwards compatible and keep the same thrown Errors.
-        // it can still pass with null/undefined
-        return {
-            _id: new objectIdInstance(idMap)
+                return request
+            })
+            await dbClient.batchWrite({
+                RequestItems: requestItems
+            }).promise()
         }
     }
-
-    // /**
-    //  * Overrides cursor's toArray and next methods to convert results to entity automatically.
-    //  */
-    // protected applyEntityTransformationToCursor<Entity> (metadata: EntityMetadata, cursor: Cursor<Entity> | AggregationCursor<Entity>) {
-    //     const ParentCursor = PlatformTools.load('mongodb').Cursor
-    //     const queryRunner = this.dynamodbQueryRunner
-    //     cursor.toArray = function (callback?: MongoCallback<Entity[]>) {
-    //         if (callback) {
-    //             ParentCursor.prototype.toArray.call(this, (error: MongoError, results: Entity[]): void => {
-    //                 if (error) {
-    //                     callback(error, results)
-    //                     return
-    //                 }
-    //
-    //                 const transformer = new DocumentToEntityTransformer()
-    //                 const entities = transformer.transformAll(results, metadata)
-    //
-    //                 // broadcast "load" events
-    //                 queryRunner.broadcaster.broadcast('Load', metadata, entities)
-    //                     .then(() => callback(error, entities))
-    //             })
-    //         } else {
-    //             return ParentCursor.prototype.toArray.call(this).then((results: Entity[]) => {
-    //                 const transformer = new DocumentToEntityTransformer()
-    //                 const entities = transformer.transformAll(results, metadata)
-    //
-    //                 // broadcast "load" events
-    //                 return queryRunner.broadcaster.broadcast('Load', metadata, entities)
-    //                     .then(() => entities)
-    //             })
-    //         }
-    //     }
-    //     cursor.next = function (callback?: MongoCallback<CursorResult>) {
-    //         if (callback) {
-    //             ParentCursor.prototype.next.call(this, (error: MongoError, result: CursorResult): void => {
-    //                 if (error || !result) {
-    //                     callback(error, result)
-    //                     return
-    //                 }
-    //
-    //                 const transformer = new DocumentToEntityTransformer()
-    //                 const entity = transformer.transform(result, metadata)
-    //
-    //                 // broadcast "load" events
-    //
-    //                 queryRunner.broadcaster.broadcast('Load', metadata, [entity])
-    //                     .then(() => callback(error, entity))
-    //             })
-    //         } else {
-    //             return ParentCursor.prototype.next.call(this).then((result: Entity) => {
-    //                 if (!result) return result
-    //
-    //                 const transformer = new DocumentToEntityTransformer()
-    //                 const entity = transformer.transform(result, metadata)
-    //
-    //                 // broadcast "load" events
-    //                 return queryRunner.broadcaster.broadcast('Load', metadata, [entity])
-    //                     .then(() => entity)
-    //             })
-    //         }
-    //     }
-    // }
 }

@@ -84,7 +84,7 @@ export class DynamodbDriver implements Driver {
     maxAliasLength?: number | undefined;
 
     /**
-     * Mongodb does not require to dynamically create query runner each time,
+     * DynamoDB does not require to dynamically create query runner each time,
      * because it does not have a regular connection pool as RDBMS systems have.
      */
     queryRunner?: DynamodbQueryRunner;

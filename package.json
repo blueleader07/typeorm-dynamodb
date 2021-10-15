@@ -1,6 +1,6 @@
 {
   "name": "@lmig/legal-nodejs-dynamodb",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "Query a Dynamo database with NodeJS",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -51,6 +51,9 @@
     "bignumber.js": "^9.0.1",
     "typeorm": "^0.2.32",
     "typeorm-transactional-cls-hooked": "^0.1.20"
+  },
+  "peerDependencies": {
+    "aws-sdk": "^2.797.0"
   },
   "engines": {
     "node": "12.18.3"

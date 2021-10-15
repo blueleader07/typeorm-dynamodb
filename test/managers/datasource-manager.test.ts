@@ -1,39 +1,44 @@
 import expect from 'expect'
 import { datasourceManager } from '../../src/managers/datasource-manager'
-import { BaseEntity, Entity, EntityRepository, PrimaryColumn } from 'typeorm'
-import { PagingAndSortingRepository } from '../../src'
-import AWS from 'aws-sdk'
-
-@Entity({ name: 'dummy_t' })
-class DummyEntity extends BaseEntity {
-    @PrimaryColumn({ name: 'id', type: 'varchar' })
-    id: string
-}
-
-@EntityRepository(DummyEntity)
-class DummyRepository extends PagingAndSortingRepository<DummyEntity> {
-
-}
-
-AWS.config.update({
-    region: 'us-east-1',
-    // @ts-ignore
-    endpoint: 'http://localhost:4566'
-})
+import sinon from 'sinon'
+import { PlatformTools } from 'typeorm/platform/PlatformTools'
+import { MockEntityManager } from '../mocks/mock-typeorm'
+import { Dummy } from '../entities/dummy'
+import { DummyRepository } from '../repositories/dummy-repository'
 
 describe('datasource-manager', () => {
-    it('create', async (): Promise<any> => {
-        const connection = await datasourceManager.open({ entities: [DummyEntity] })
-        await connection.synchronize()
-        expect(true).toBe(true)
+    beforeEach(async () => {
+        await MockEntityManager()
+        const AWS = PlatformTools.load('aws-sdk')
+        AWS.config.update({
+            region: 'us-east-1',
+            // @ts-ignore
+            endpoint: 'http://localhost:4566'
+        })
     })
+    afterEach(() => {
+        sinon.restore()
+    })
+    // it('create', async (): Promise<any> => {
+    //     const connection = await datasourceManager.open({ entities: [DummyEntity] })
+    //     await connection.synchronize(true)
+    //     // let's make sure we don't choke when it already exists
+    //     await connection.synchronize()
+    //     expect(true).toBe(true)
+    // })
     it('insert and delete', async (): Promise<any> => {
-        await datasourceManager.open({ entities: [DummyEntity] })
+        sinon.stub(DummyRepository.prototype, 'put').resolves()
+        sinon.stub(DummyRepository.prototype, 'deleteOne').resolves()
+        const findStub = sinon.stub(DummyRepository.prototype, 'findOne')
+        findStub.onFirstCall().resolves({ id: '123', name: 'dummy' } as any)
+        findStub.onSecondCall().resolves(undefined)
+        const connection = await datasourceManager.open({ entities: [Dummy] })
+        await connection.synchronize()
         const repository = await datasourceManager.getCustomRepository(DummyRepository)
-        const dummyEntity: any = new DummyEntity()
-        dummyEntity.id = '456'
-        dummyEntity.bla = '456'
-        await repository.put(dummyEntity)
+        const dummy = new Dummy()
+        dummy.id = '456'
+        dummy.name = 'dummy'
+        await repository.put(dummy)
         const result = await repository.findOne('456')
         expect(result).not.toBe(undefined)
         await repository.deleteOne({ id: '456' })
@@ -41,23 +46,25 @@ describe('datasource-manager', () => {
         expect(result2).toBe(undefined)
     })
     it('insert and delete many', async (): Promise<any> => {
-        await datasourceManager.open({ entities: [DummyEntity] })
+        sinon.stub(DummyRepository.prototype, 'put').resolves()
+        sinon.stub(DummyRepository.prototype, 'deleteMany').resolves()
+        const findStub = sinon.stub(DummyRepository.prototype, 'findOne')
+        findStub.onFirstCall().resolves({ id: '123', name: 'dummy1' } as any)
+        findStub.onSecondCall().resolves({ id: '456', name: 'dummy2' } as any)
+        const connection = await datasourceManager.open({ entities: [Dummy] })
+        await connection.synchronize()
         const repository = await datasourceManager.getCustomRepository(DummyRepository)
-        const dummyEntity1: any = new DummyEntity()
-        dummyEntity1.id = '123'
-        dummyEntity1.bla = '123'
-        const dummyEntity2: any = new DummyEntity()
-        dummyEntity2.id = '456'
-        dummyEntity2.bla = '456'
-        await repository.put([dummyEntity1, dummyEntity2])
+        const dummy1 = new Dummy()
+        dummy1.id = '123'
+        dummy1.name = 'dummy1'
+        const dummy2 = new Dummy()
+        dummy2.id = '456'
+        dummy2.name = 'dummy2'
+        await repository.put([dummy1, dummy2])
         const result1 = await repository.findOne('123')
         expect(result1).not.toBe(undefined)
         const result2 = await repository.findOne('456')
         expect(result2).not.toBe(undefined)
         await repository.deleteMany([{ id: '123' }, { id: '456' }])
-        // const result3 = await repository.findOne('123')
-        // expect(result3).toBe(undefined)
-        // const result4 = await repository.findOne('456')
-        // expect(result4).toBe(undefined)
     })
 })
