@@ -40,7 +40,7 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
         return this.findOne(key)
     }
 
-    async find (options: FindOptions): Promise<Entity[]> {
+    async find (options: FindOptions | any): Promise<Entity[]> {
         return this.manager.find(this.metadata.tableName, options)
     }
 
