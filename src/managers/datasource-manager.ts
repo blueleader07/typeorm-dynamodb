@@ -141,11 +141,11 @@ export const datasourceManager = {
     async open (options: DatasourceManagerOptions) {
         options = commonUtils.mixin(DEFAULT_OPTIONS, options)
         if (!connection) {
-            const options2: any = {
+            const connectionOptions: any = {
                 type: 'dynamodb',
                 entities: options?.entities
             }
-            connection = await connectionManager.create(options2)
+            connection = await connectionManager.create(connectionOptions)
         }
         return connection
     },
