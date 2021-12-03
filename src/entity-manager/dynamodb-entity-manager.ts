@@ -70,7 +70,7 @@ export class DynamoDbEntityManager extends EntityManager {
             const AWS = PlatformTools.load('aws-sdk')
             const dbClient = new AWS.DynamoDB.DocumentClient()
             const metadata = this.connection.getMetadata(entityClassOrName)
-            const params = paramHelper.find(metadata.tableName, options)
+            const params = paramHelper.find(metadata.tablePath, options)
             const results = await dbClient.query(params).promise()
             const items: any = results.Items || []
             items.lastEvaluatedKey = results.LastEvaluatedKey
@@ -87,7 +87,7 @@ export class DynamoDbEntityManager extends EntityManager {
         const AWS = PlatformTools.load('aws-sdk')
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
-        const params = paramHelper.find(metadata.tableName, options)
+        const params = paramHelper.find(metadata.tablePath, options)
         let items: any[] = []
         let results = await dbClient.query(params).promise()
         items = items.concat(results.Items || [])
@@ -104,7 +104,7 @@ export class DynamoDbEntityManager extends EntityManager {
         const dbClient = new AWS.DynamoDB.DocumentClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const params: any = {
-            TableName: metadata.tableName
+            TableName: metadata.tablePath
             // IndexName: findOptions.index,
             // KeyConditionExpression: FindOptions.toKeyConditionExpression(findOptions.where),
             // ExpressionAttributeValues: FindOptions.toExpressionAttributeValues(findOptions.where)
@@ -142,7 +142,7 @@ export class DynamoDbEntityManager extends EntityManager {
             options.where = { id }
             options.limit = 1
         }
-        const params = paramHelper.find(metadata.tableName, options)
+        const params = paramHelper.find(metadata.tablePath, options)
         const results = await dbClient.query(params).promise()
         const items: any = results.Items || []
         return items.length > 0 ? items[0] : undefined
@@ -184,7 +184,7 @@ export class DynamoDbEntityManager extends EntityManager {
             const metadata = this.connection.getMetadata(target)
             keyMapper = keyMapper || DEFAULT_KEY_MAPPER
             const keys: any[] = items.map(keyMapper)
-            await this.deleteMany(metadata.tableName, keys)
+            await this.deleteMany(metadata.tablePath, keys)
             await this.deleteQueryBatch(target, options, keyMapper)
         }
     }
@@ -194,7 +194,7 @@ export class DynamoDbEntityManager extends EntityManager {
      */
     deleteMany<Entity> (entityClassOrName: EntityTarget<Entity>, keys: QueryDeepPartialEntity<Entity>[]): Promise<void> {
         const metadata = this.connection.getMetadata(entityClassOrName)
-        return this.dynamodbQueryRunner.deleteMany(metadata.tableName, keys)
+        return this.dynamodbQueryRunner.deleteMany(metadata.tablePath, keys)
     }
 
     /**
@@ -202,7 +202,7 @@ export class DynamoDbEntityManager extends EntityManager {
      */
     deleteOne<Entity> (entityClassOrName: EntityTarget<Entity>, key: ObjectLiteral): Promise<void> {
         const metadata = this.connection.getMetadata(entityClassOrName)
-        return this.dynamodbQueryRunner.deleteOne(metadata.tableName, key)
+        return this.dynamodbQueryRunner.deleteOne(metadata.tablePath, key)
     }
 
     /**
@@ -210,7 +210,7 @@ export class DynamoDbEntityManager extends EntityManager {
      */
     putMany<Entity> (entityClassOrName: EntityTarget<Entity>, docs: ObjectLiteral[]): Promise<void> {
         const metadata = this.connection.getMetadata(entityClassOrName)
-        return this.dynamodbQueryRunner.putMany(metadata.tableName, docs)
+        return this.dynamodbQueryRunner.putMany(metadata.tablePath, docs)
     }
 
     /**
@@ -218,7 +218,7 @@ export class DynamoDbEntityManager extends EntityManager {
      */
     putOne<Entity> (entityClassOrName: EntityTarget<Entity>, doc: ObjectLiteral): Promise<ObjectLiteral> {
         const metadata = this.connection.getMetadata(entityClassOrName)
-        return this.dynamodbQueryRunner.putOne(metadata.tableName, doc)
+        return this.dynamodbQueryRunner.putOne(metadata.tablePath, doc)
     }
 
     /**
@@ -233,14 +233,14 @@ export class DynamoDbEntityManager extends EntityManager {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i]
             const requestItems: any = {}
-            requestItems[metadata.tableName] = {
+            requestItems[metadata.tablePath] = {
                 Keys: batch
             }
             const response = await dbClient.batchGet({
                 RequestItems: requestItems
             }).promise()
             if (response.Responses !== undefined) {
-                items = items.concat(response.Responses[metadata.tableName])
+                items = items.concat(response.Responses[metadata.tablePath])
             }
         }
         return items
@@ -257,7 +257,7 @@ export class DynamoDbEntityManager extends EntityManager {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i]
             const requestItems: any = {}
-            requestItems[metadata.tableName] = batch.map(write => {
+            requestItems[metadata.tablePath] = batch.map(write => {
                 const request: any = {}
                 request[write.type] = {
                     Item: write.item
