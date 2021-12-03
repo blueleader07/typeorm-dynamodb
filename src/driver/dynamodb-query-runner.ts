@@ -20,7 +20,6 @@ import { View } from 'typeorm/schema-builder/view/View'
 import { PlatformTools, ReadStream } from 'typeorm/platform/PlatformTools'
 import { Broadcaster } from 'typeorm/subscriber/Broadcaster'
 import { batchHelper } from '../helpers/batch-helper'
-import AWS from 'aws-sdk'
 import { ReplicationMode } from 'typeorm/driver/types/ReplicationMode'
 
 export class DynamodbQueryRunner implements QueryRunner {
