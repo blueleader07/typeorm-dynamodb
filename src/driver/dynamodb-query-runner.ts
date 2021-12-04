@@ -21,6 +21,26 @@ import { PlatformTools, ReadStream } from 'typeorm/platform/PlatformTools'
 import { Broadcaster } from 'typeorm/subscriber/Broadcaster'
 import { batchHelper } from '../helpers/batch-helper'
 import { ReplicationMode } from 'typeorm/driver/types/ReplicationMode'
+import asyncPool from 'tiny-async-pool'
+import { DocumentClient } from 'aws-sdk/clients/dynamodb'
+
+class PutManyOptions {
+    maxConcurrency: number
+}
+
+const batchWrite = async (tableName: string, batch: any[], dbClient: DocumentClient) => {
+    const RequestItems: any = {}
+    RequestItems[tableName] = batch.map((Item: any) => {
+        return {
+            PutRequest: {
+                Item
+            }
+        }
+    })
+    return dbClient.batchWrite({
+        RequestItems
+    }).promise()
+}
 
 export class DynamodbQueryRunner implements QueryRunner {
     // -------------------------------------------------------------------------
@@ -160,25 +180,15 @@ export class DynamodbQueryRunner implements QueryRunner {
     /**
      * Inserts an array of documents into DynamoDB.
      */
-    async putMany (tableName: string, docs: ObjectLiteral[]): Promise<void> {
+    async putMany (tableName: string, docs: ObjectLiteral[], options?: PutManyOptions): Promise<void> {
+        const batchOptions = options || { maxConcurrency: 4 }
         if (docs.length > 0) {
+            const batches = batchHelper.batch(docs)
             const AWS = PlatformTools.load('aws-sdk')
             const dbClient = new AWS.DynamoDB.DocumentClient()
-            const batches = batchHelper.batch(docs)
-            for (let i = 0; i < batches.length; i += 1) {
-                const batch = batches[i]
-                const RequestItems: any = {}
-                RequestItems[tableName] = batch.map((Item: any) => {
-                    return {
-                        PutRequest: {
-                            Item
-                        }
-                    }
-                })
-                await dbClient.batchWrite({
-                    RequestItems
-                }).promise()
-            }
+            await asyncPool(batchOptions.maxConcurrency, batches, (batch: any[][]) => {
+                return batchWrite(tableName, batch, dbClient)
+            })
         }
     }
 
