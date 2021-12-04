@@ -24,8 +24,26 @@ import { ReplicationMode } from 'typeorm/driver/types/ReplicationMode'
 import asyncPool from 'tiny-async-pool'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 
+class DeleteManyOptions {
+    maxConcurrency: number
+}
+
 class PutManyOptions {
     maxConcurrency: number
+}
+
+const batchDelete = async (tableName: string, batch: any[], dbClient: DocumentClient) => {
+    const RequestItems: any = {}
+    RequestItems[tableName] = batch.map((Key: any) => {
+        return {
+            DeleteRequest: {
+                Key
+            }
+        }
+    })
+    return dbClient.batchWrite({
+        RequestItems
+    }).promise()
 }
 
 const batchWrite = async (tableName: string, batch: any[], dbClient: DocumentClient) => {
@@ -142,25 +160,15 @@ export class DynamodbQueryRunner implements QueryRunner {
     /**
      * Delete multiple documents on DynamoDB.
      */
-    async deleteMany (tableName: string, keys: ObjectLiteral[]): Promise<void> {
+    async deleteMany (tableName: string, keys: ObjectLiteral[], options?: DeleteManyOptions): Promise<void> {
         if (keys.length > 0) {
+            const batchOptions = options || { maxConcurrency: 8 }
             const AWS = PlatformTools.load('aws-sdk')
             const dbClient = new AWS.DynamoDB.DocumentClient()
             const batches = batchHelper.batch(keys)
-            const promises = batches.map((batch: any) => {
-                const RequestItems: any = {}
-                RequestItems[tableName] = batch.map((Key: any) => {
-                    return {
-                        DeleteRequest: {
-                            Key
-                        }
-                    }
-                })
-                return dbClient.batchWrite({
-                    RequestItems
-                }).promise()
+            await asyncPool(batchOptions.maxConcurrency, batches, (batch: any[][]) => {
+                return batchDelete(tableName, batch, dbClient)
             })
-            await Promise.all(promises)
         }
     }
 
@@ -181,8 +189,8 @@ export class DynamodbQueryRunner implements QueryRunner {
      * Inserts an array of documents into DynamoDB.
      */
     async putMany (tableName: string, docs: ObjectLiteral[], options?: PutManyOptions): Promise<void> {
-        const batchOptions = options || { maxConcurrency: 4 }
         if (docs.length > 0) {
+            const batchOptions = options || { maxConcurrency: 8 }
             const batches = batchHelper.batch(docs)
             const AWS = PlatformTools.load('aws-sdk')
             const dbClient = new AWS.DynamoDB.DocumentClient()
