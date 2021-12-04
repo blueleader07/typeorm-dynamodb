@@ -165,7 +165,8 @@ export class DynamodbQueryRunner implements QueryRunner {
             const AWS = PlatformTools.load('aws-sdk')
             const dbClient = new AWS.DynamoDB.DocumentClient()
             const batches = batchHelper.batch(docs)
-            const promises = batches.map((batch: any) => {
+            for (let i = 0; i < batches.length; i += 1) {
+                const batch = batches[i]
                 const RequestItems: any = {}
                 RequestItems[tableName] = batch.map((Item: any) => {
                     return {
@@ -174,11 +175,10 @@ export class DynamodbQueryRunner implements QueryRunner {
                         }
                     }
                 })
-                return dbClient.batchWrite({
+                await dbClient.batchWrite({
                     RequestItems
                 }).promise()
-            })
-            await Promise.all(promises)
+            }
         }
     }
 
