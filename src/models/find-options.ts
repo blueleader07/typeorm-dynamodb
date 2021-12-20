@@ -14,7 +14,7 @@ export class FindOptions {
     exclusiveStartKey?: string
 
     static toAttributeNames (findOptions: FindOptions) {
-        return attributeHelper.toAttributeNames(findOptions.where)
+        return attributeHelper.toAttributeNames(findOptions.where, findOptions.beginsWith)
     }
 
     static toKeyConditionExpression (findOptions: FindOptions) {
