@@ -9,7 +9,7 @@ import { AddOptions } from '../../src/models/add-options'
 
 describe('datasource-manager', () => {
     beforeEach(async () => {
-        // await MockEntityManager()
+        await MockEntityManager()
         const AWS = PlatformTools.load('aws-sdk')
         AWS.config.update({
             region: 'us-east-1',
@@ -69,7 +69,7 @@ describe('datasource-manager', () => {
         await repository.deleteMany([{ id: '123' }, { id: '456' }])
     })
     it('add', async (): Promise<any> => {
-        // sinon.stub(DummyRepository.prototype, 'add').resolves()
+        sinon.stub(DummyRepository.prototype, 'add').resolves()
         const connection = await datasourceManager.open({ entities: [Dummy] })
         await connection.synchronize()
         const repository = await datasourceManager.getCustomRepository(DummyRepository)
