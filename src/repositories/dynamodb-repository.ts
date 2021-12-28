@@ -13,7 +13,6 @@ import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager
 import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { AddOptions } from '../models/add-options'
-import { UpdateOptions } from '../models/update-options'
 
 export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository<Entity> {
     /**
