@@ -23,6 +23,8 @@ import { FindOptions } from '../models/find-options'
 import { batchHelper } from '../helpers/batch-helper'
 import { BatchWriteItem } from '../models/batch-write-item'
 import { ScanOptions } from '../models/scan-options'
+import { AddOptions } from '../models/add-options'
+import { UpdateOptions } from '../models/update-options'
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
@@ -60,6 +62,26 @@ export class DynamoDbEntityManager extends EntityManager {
             }
             return keys
         }
+    }
+
+    async add<Entity> (entityClassOrName: EntityTarget<Entity>, options: AddOptions) {
+        const AWS = PlatformTools.load('aws-sdk')
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        const params = paramHelper.update(metadata.tablePath, {
+            type: 'ADD',
+            values: options.values,
+            where: options.where
+        })
+        return dbClient.query(params).promise()
+    }
+
+    async update<Entity> (entityClassOrName: EntityTarget<Entity>, options: UpdateOptions) {
+        const AWS = PlatformTools.load('aws-sdk')
+        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        const params = paramHelper.update(metadata.tablePath, options)
+        return dbClient.query(params).promise()
     }
 
     /**

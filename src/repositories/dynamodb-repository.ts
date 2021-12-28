@@ -12,6 +12,8 @@ import { DynamodbReadStream } from '../streams/dynamodb-read-stream'
 import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager'
 import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import { AddOptions } from '../models/add-options'
+import { UpdateOptions } from '../models/update-options'
 
 export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository<Entity> {
     /**
@@ -53,6 +55,14 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
      */
     findOne (optionsOrConditions?: string|number|Date|ObjectID|FindOneOptions<Entity>|FindConditions<Entity>, maybeOptions?: FindOneOptions<Entity>) {
         return this.manager.findOne(this.metadata.target as any, optionsOrConditions as any, maybeOptions)
+    }
+
+    add (options: AddOptions) {
+        return this.manager.update(this.metadata.target as any, {
+            type: 'ADD',
+            values: options.values,
+            where: options.where
+        })
     }
 
     scan (options: ScanOptions) {
