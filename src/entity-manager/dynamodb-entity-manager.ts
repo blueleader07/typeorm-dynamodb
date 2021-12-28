@@ -73,7 +73,7 @@ export class DynamoDbEntityManager extends EntityManager {
             values: options.values,
             where: options.where
         })
-        return dbClient.query(params).promise()
+        return dbClient.update(params).promise()
     }
 
     async update<Entity> (entityClassOrName: EntityTarget<Entity>, options: UpdateOptions) {

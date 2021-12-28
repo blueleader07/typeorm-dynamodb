@@ -5,10 +5,11 @@ import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import { MockEntityManager } from '../mocks/mock-typeorm'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
+import { AddOptions } from '../../src/models/add-options'
 
 describe('datasource-manager', () => {
     beforeEach(async () => {
-        await MockEntityManager()
+        // await MockEntityManager()
         const AWS = PlatformTools.load('aws-sdk')
         AWS.config.update({
             region: 'us-east-1',
@@ -66,5 +67,19 @@ describe('datasource-manager', () => {
         const result2 = await repository.findOne('456')
         expect(result2).not.toBe(undefined)
         await repository.deleteMany([{ id: '123' }, { id: '456' }])
+    })
+    it('add', async (): Promise<any> => {
+        // sinon.stub(DummyRepository.prototype, 'add').resolves()
+        const connection = await datasourceManager.open({ entities: [Dummy] })
+        await connection.synchronize()
+        const repository = await datasourceManager.getCustomRepository(DummyRepository)
+        const options = new AddOptions()
+        options.values = {
+            total: 100
+        }
+        options.where = {
+            executionId: '123'
+        }
+        await repository.add(options)
     })
 })
