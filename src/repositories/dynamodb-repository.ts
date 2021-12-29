@@ -13,6 +13,7 @@ import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager
 import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { AddOptions } from '../models/add-options'
+import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
 
 export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository<Entity> {
     /**
@@ -81,6 +82,10 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
 
     putOne (content: DeepPartial<Entity | Entity[]>) {
         return this.manager.putOne(this.metadata.tableName, content)
+    }
+
+    delete (criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>): Promise<DeleteResult> {
+        return this.manager.delete(this.metadata.tableName, criteria)
     }
 
     deleteOne (key: QueryDeepPartialEntity<Entity>) {

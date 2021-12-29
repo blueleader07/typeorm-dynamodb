@@ -24,6 +24,7 @@ import { batchHelper } from '../helpers/batch-helper'
 import { BatchWriteItem } from '../models/batch-write-item'
 import { ScanOptions } from '../models/scan-options'
 import { UpdateOptions } from '../models/update-options'
+import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
@@ -169,6 +170,17 @@ export class DynamoDbEntityManager extends EntityManager {
             await this.putMany(target, entity)
         } else {
             await this.putOne(target, entity)
+        }
+    }
+
+    async delete<Entity> (targetOrEntity: EntityTarget<Entity>, criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | any): Promise<DeleteResult> {
+        if (Array.isArray(criteria)) {
+            await this.deleteMany(targetOrEntity, criteria)
+        } else {
+            await this.deleteOne(targetOrEntity, criteria)
+        }
+        return {
+            raw: {}
         }
     }
 
