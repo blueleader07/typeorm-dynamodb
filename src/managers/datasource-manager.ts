@@ -173,5 +173,9 @@ export const datasourceManager = {
     getRepository<Entity> (target: EntityTarget<Entity>, name?: string): Repository<Entity> {
         const connection = connectionManager.get(name)
         return connection.getRepository(target)
+    },
+
+    async close () {
+        // does nothing in dynamodb.  Adding for compatability with other legal-nodejs-{database} libraries.
     }
 }
