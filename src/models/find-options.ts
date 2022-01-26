@@ -1,4 +1,5 @@
 import { attributeHelper } from '../helpers/attribute-helper'
+import { commonUtils } from '@lmig/legal-nodejs-utils'
 
 export class BeginsWith {
     attribute: string
@@ -18,7 +19,7 @@ export class FindOptions {
     }
 
     static toKeyConditionExpression (findOptions: FindOptions) {
-        if (findOptions.where) {
+        if (commonUtils.isNotEmpty(findOptions.where)) {
             const keys = Object.keys(findOptions.where)
             const values = []
             for (let i = 0; i < keys.length; i++) {
@@ -38,7 +39,7 @@ export class FindOptions {
     }
 
     static toExpressionAttributeValues (findOptions: FindOptions) {
-        if (findOptions.where) {
+        if (commonUtils.isNotEmpty(findOptions.where)) {
             const keys = Object.keys(findOptions.where)
             const values: any = {}
             for (let i = 0; i < keys.length; i++) {

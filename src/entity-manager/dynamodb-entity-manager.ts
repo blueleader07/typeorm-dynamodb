@@ -25,6 +25,7 @@ import { BatchWriteItem } from '../models/batch-write-item'
 import { ScanOptions } from '../models/scan-options'
 import { UpdateOptions } from '../models/update-options'
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
+import { commonUtils } from '@lmig/legal-nodejs-utils'
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
@@ -81,7 +82,7 @@ export class DynamoDbEntityManager extends EntityManager {
             const dbClient = new AWS.DynamoDB.DocumentClient()
             const metadata = this.connection.getMetadata(entityClassOrName)
             const params = paramHelper.find(metadata.tablePath, options)
-            const results = await dbClient.query(params).promise()
+            const results = commonUtils.isEmpty(options.where) ? await dbClient.scan(params).promise() : await dbClient.query(params).promise()
             const items: any = results.Items || []
             items.lastEvaluatedKey = results.LastEvaluatedKey
             return items
