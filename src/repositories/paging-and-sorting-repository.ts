@@ -4,7 +4,10 @@ import { DynamoPage } from '../models/dynamo-page'
 import { DynamodbRepository } from './dynamodb-repository'
 
 const encode = (json: object) => {
-    return Buffer.from(JSON.stringify(json)).toString('base64')
+    if (json) {
+        return Buffer.from(JSON.stringify(json)).toString('base64')
+    }
+    return undefined
 }
 
 const decode = (data: string) => {
