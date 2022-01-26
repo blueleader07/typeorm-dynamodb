@@ -7,7 +7,7 @@ export class BeginsWith {
 
 export class FindOptions {
     index?: string
-    where: any
+    where?: any
     beginsWith?: BeginsWith
     limit?: number
     sort?: string
@@ -18,13 +18,16 @@ export class FindOptions {
     }
 
     static toKeyConditionExpression (findOptions: FindOptions) {
-        const keys = Object.keys(findOptions.where)
-        const values = []
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i]
-            values.push(`#${key} = :${key}`)
+        if (findOptions.where) {
+            const keys = Object.keys(findOptions.where)
+            const values = []
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i]
+                values.push(`#${key} = :${key}`)
+            }
+            return FindOptions.appendBeginsWith(values.join(' and '), findOptions.beginsWith)
         }
-        return FindOptions.appendBeginsWith(values.join(' and '), findOptions.beginsWith)
+        return undefined
     }
 
     static appendBeginsWith (expression: string, beginsWith?: BeginsWith) {
@@ -35,15 +38,18 @@ export class FindOptions {
     }
 
     static toExpressionAttributeValues (findOptions: FindOptions) {
-        const keys = Object.keys(findOptions.where)
-        const values: any = {}
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i]
-            values[`:${key}`] = findOptions.where[key]
+        if (findOptions.where) {
+            const keys = Object.keys(findOptions.where)
+            const values: any = {}
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i]
+                values[`:${key}`] = findOptions.where[key]
+            }
+            if (findOptions.beginsWith) {
+                values[`:${findOptions.beginsWith.attribute}`] = findOptions.beginsWith.value
+            }
+            return values
         }
-        if (findOptions.beginsWith) {
-            values[`:${findOptions.beginsWith.attribute}`] = findOptions.beginsWith.value
-        }
-        return values
+        return undefined
     }
 }
