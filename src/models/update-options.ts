@@ -6,9 +6,7 @@ export class UpdateOptions {
     where: any
 
     static toAttributeNames (updateOptions: UpdateOptions) {
-        const attributeNames: any = {}
-        attributeHelper.toAttributeNames(updateOptions.values, attributeNames)
-        return attributeNames
+        return attributeHelper.toAttributeNames(updateOptions.values)
     }
 
     static toExpressionAttributeValues (updateOptions: UpdateOptions) {

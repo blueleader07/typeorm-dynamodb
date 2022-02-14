@@ -15,10 +15,7 @@ export class FindOptions {
     exclusiveStartKey?: string
 
     static toAttributeNames (findOptions: FindOptions) {
-        const attributeNames: any = {}
-        attributeHelper.toAttributeNames(findOptions.where, attributeNames)
-        attributeHelper.fromBeginsWith(findOptions.beginsWith, attributeNames)
-        return commonUtils.isEmpty(attributeNames) ? undefined : attributeNames
+        return attributeHelper.toAttributeNames(findOptions.where, findOptions.beginsWith)
     }
 
     static toKeyConditionExpression (findOptions: FindOptions) {

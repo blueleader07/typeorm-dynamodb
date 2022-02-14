@@ -3,7 +3,7 @@ import { BeginsWith } from '../models/find-options'
 
 export const attributeHelper = {
 
-    toAttributeNames (object: any, attributeNames?: any) {
+    toAttributeNames (object: any, beginsWith?: BeginsWith, attributeNames?: any) {
         if (commonUtils.isNotEmpty(object)) {
             attributeNames = attributeNames || {}
             const keys = Object.keys(object)
@@ -12,12 +12,7 @@ export const attributeHelper = {
                 attributeNames[`#${key}`] = key
             }
         }
-        return attributeNames
-    },
-
-    fromBeginsWith (beginsWith?: BeginsWith, attributeNames?: any) {
         if (beginsWith) {
-            attributeNames = attributeNames || {}
             attributeNames[`#${beginsWith.attribute}`] = beginsWith.attribute
         }
         return attributeNames
