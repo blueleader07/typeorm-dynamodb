@@ -118,6 +118,13 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
         return this.manager.batchWrite(this.metadata.tableName, writes)
     }
 
+    /**
+     * @deprecated use repository.updateMany(...) for dynamodb.
+     */
+    update (criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
+        throw new Error('use repository.updateMany(...) for dynamodb.')
+    }
+
     updateMany (options: UpdateOptions): Promise<UpdateResult> {
         return this.manager.update(this.metadata.tableName, options)
     }
