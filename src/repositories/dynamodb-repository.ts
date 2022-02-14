@@ -14,6 +14,8 @@ import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { AddOptions } from '../models/add-options'
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
+import { UpdateResult } from 'typeorm/query-builder/result/UpdateResult'
+import { UpdateOptions } from '../models/update-options'
 
 export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository<Entity> {
     /**
@@ -114,6 +116,10 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
 
     batchWrite (writes: BatchWriteItem[]) {
         return this.manager.batchWrite(this.metadata.tableName, writes)
+    }
+
+    updateMany (options: UpdateOptions): Promise<UpdateResult> {
+        return this.manager.update(this.metadata.tableName, options)
     }
 
     async streamAll () {
