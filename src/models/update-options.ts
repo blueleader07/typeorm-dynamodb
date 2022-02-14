@@ -8,7 +8,6 @@ export class UpdateOptions {
     static toAttributeNames (updateOptions: UpdateOptions) {
         const attributeNames: any = {}
         attributeHelper.toAttributeNames(updateOptions.values, attributeNames)
-        attributeHelper.toAttributeNames(updateOptions.values, attributeNames)
         return attributeNames
     }
 

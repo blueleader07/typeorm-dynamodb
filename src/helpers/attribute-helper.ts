@@ -1,4 +1,5 @@
 import { commonUtils } from '@lmig/legal-nodejs-utils'
+import { BeginsWith } from '../models/find-options'
 
 export const attributeHelper = {
 
@@ -10,9 +11,16 @@ export const attributeHelper = {
                 const key = keys[i]
                 attributeNames[`#${key}`] = key
             }
-            return attributeNames
         }
-        return undefined
+        return attributeNames
+    },
+
+    fromBeginsWith (beginsWith?: BeginsWith, attributeNames?: any) {
+        if (beginsWith) {
+            attributeNames = attributeNames || {}
+            attributeNames[`#${beginsWith.attribute}`] = beginsWith.attribute
+        }
+        return attributeNames
     }
 
 }

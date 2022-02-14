@@ -34,6 +34,39 @@ describe('param-helper', () => {
             TableName: 'local-toucan-scores'
         })
     })
+
+    it('find beginsWith', async (): Promise<any> => {
+        /** given: **/
+        const options = new FindOptions()
+        options.index = 'searchByNameIndex'
+        options.where = {
+            searchInitial: 'm'
+        }
+        options.beginsWith = {
+            attribute: 'searchName',
+            value: 'my-machine'
+        }
+
+        /** when: **/
+        const params = paramHelper.find('local-toucan-scores', options)
+
+        /** then: **/
+        expect(params).toEqual({
+            ExpressionAttributeNames: {
+                '#searchInitial': 'searchInitial',
+                '#searchName': 'searchName'
+            },
+            ExpressionAttributeValues: {
+                ':searchInitial': 'm',
+                ':searchName': 'my-machine'
+            },
+            IndexName: 'searchByNameIndex',
+            KeyConditionExpression: '#searchInitial = :searchInitial and begins_with(#searchName, :searchName)',
+            ScanIndexForward: true,
+            TableName: 'local-toucan-scores'
+        })
+    })
+
     it('find with multiple where filters', async (): Promise<any> => {
         /** given: **/
         const options = new FindOptions()
