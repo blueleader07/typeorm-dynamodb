@@ -15,7 +15,7 @@ import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity
 import { AddOptions } from '../models/add-options'
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
 import { UpdateResult } from 'typeorm/query-builder/result/UpdateResult'
-import { UpdateOptions } from '../models/update-options'
+import { UpdateManyOptions } from '../models/update-many-options'
 
 export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository<Entity> {
     /**
@@ -125,8 +125,12 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
         throw new Error('use repository.updateMany(...) for dynamodb.')
     }
 
-    updateMany (options: UpdateOptions): Promise<UpdateResult> {
-        return this.manager.update(this.metadata.tableName, options)
+    updateMany (options: UpdateManyOptions): Promise<UpdateResult> {
+        return this.manager.update(this.metadata.target as any, {
+            type: 'SET',
+            values: options.values,
+            where: options.where
+        })
     }
 
     async streamAll () {
