@@ -15,7 +15,7 @@ import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity
 import { AddOptions } from '../models/add-options'
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
 import { UpdateResult } from 'typeorm/query-builder/result/UpdateResult'
-import { UpdateManyOptions } from '../models/update-many-options'
+import { UpdateOptions } from '../models/update-options'
 
 export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository<Entity> {
     /**
@@ -119,18 +119,14 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
     }
 
     /**
-     * @deprecated use repository.updateMany(...) for dynamodb.
+     * @deprecated use put(...) or updateExpression(...) for dynamodb.
      */
     update (criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity>): Promise<UpdateResult> {
         throw new Error('use repository.updateMany(...) for dynamodb.')
     }
 
-    updateMany (options: UpdateManyOptions): Promise<UpdateResult> {
-        return this.manager.update(this.metadata.target as any, {
-            type: 'SET',
-            values: options.values,
-            where: options.where
-        })
+    updateExpression (options: UpdateOptions): Promise<UpdateResult> {
+        return this.manager.update(this.metadata.target as any, options)
     }
 
     async streamAll () {

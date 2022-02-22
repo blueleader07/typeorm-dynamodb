@@ -95,7 +95,7 @@ describe('param-helper', () => {
             TableName: 'local-toucan-scores'
         })
     })
-    it('update', async (): Promise<any> => {
+    it('update with ADD', async (): Promise<any> => {
         /** given: **/
         const options = new UpdateOptions()
         options.type = 'ADD'
@@ -126,6 +126,42 @@ describe('param-helper', () => {
             ExpressionAttributeValues: {
                 ':total': 1,
                 ':count': 1
+            }
+        })
+    })
+
+    it('update with SET', async (): Promise<any> => {
+        /** given: **/
+        const options = new UpdateOptions()
+        options.type = 'SET'
+        options.values = {
+            status: 'failed',
+            error: 'some error occurred',
+            invoiceIdAndStatus: '123-failed'
+        }
+        options.where = {
+            invoiceId: 123
+        }
+
+        /** when: **/
+        const params = paramHelper.update('local-toucan-score-totals', options)
+
+        /** then: **/
+        expect(params).toEqual({
+            TableName: 'local-toucan-score-totals',
+            Key: {
+                invoiceId: 123
+            },
+            UpdateExpression: 'SET #status :status, #error :error, #invoiceIdAndStatus :invoiceIdAndStatus',
+            ExpressionAttributeNames: {
+                '#status': 'status',
+                '#error': 'error',
+                '#invoiceIdAndStatus': 'invoiceIdAndStatus'
+            },
+            ExpressionAttributeValues: {
+                ':status': 'failed',
+                ':error': 'some error occurred',
+                ':invoiceIdAndStatus': '123-failed'
             }
         })
     })
