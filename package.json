@@ -1,6 +1,6 @@
 {
   "name": "@lmig/legal-nodejs-dynamodb",
-  "version": "1.0.42",
+  "version": "1.0.43",
   "description": "Query a Dynamo database with NodeJS",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",

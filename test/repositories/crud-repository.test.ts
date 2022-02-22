@@ -9,15 +9,20 @@ describe('crud-repository', () => {
     it('select', async (): Promise<any> => {
         expect(1).toBe(1)
     })
-    it('updateMany', async (): Promise<any> => {
+    it('updateExpression', async (): Promise<any> => {
         const AWS = PlatformTools.load('aws-sdk')
-        const stub = sinon.stub(AWS.DynamoDB.DocumentClient.prototype, 'update').resolves()
+        const stub = sinon.stub(AWS.DynamoDB.DocumentClient.prototype, 'update').returns({
+            promise: () => {
+                return Promise.resolve()
+            }
+        })
 
         await datasourceManager.open({
             entities: [Dummy]
         })
         const repository = datasourceManager.getCustomRepository(DummyRepository)
-        repository.updateMany({
+        await repository.updateExpression({
+            type: 'SET',
             where: {
                 invoiceId: 123
             },
@@ -29,7 +34,19 @@ describe('crud-repository', () => {
         })
 
         expect(stub.calledWith({
-
+            TableName: 'dummy_t',
+            Key: { invoiceId: 123 },
+            UpdateExpression: 'SET #status :status, #error :error, #invoiceIdAndStatus :invoiceIdAndStatus',
+            ExpressionAttributeNames: {
+                '#status': 'status',
+                '#error': 'error',
+                '#invoiceIdAndStatus': 'invoiceIdAndStatus'
+            },
+            ExpressionAttributeValues: {
+                ':status': 'failed',
+                ':error': 'some error occurred',
+                ':invoiceIdAndStatus': '123-failed'
+            }
         })).toBe(true)
     })
 })
