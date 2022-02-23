@@ -22,7 +22,7 @@ import { Broadcaster } from 'typeorm/subscriber/Broadcaster'
 import { batchHelper } from '../helpers/batch-helper'
 import { ReplicationMode } from 'typeorm/driver/types/ReplicationMode'
 import asyncPool from 'tiny-async-pool'
-import { DocumentClient } from 'aws-sdk/clients/dynamodb'
+import { DynamodbClient } from '../clients/dynamodb-client'
 
 class DeleteManyOptions {
     maxConcurrency: number
@@ -32,7 +32,7 @@ class PutManyOptions {
     maxConcurrency: number
 }
 
-const batchDelete = async (tableName: string, batch: any[], dbClient: DocumentClient) => {
+const batchDelete = async (tableName: string, batch: any[], dbClient: DynamodbClient) => {
     const RequestItems: any = {}
     RequestItems[tableName] = batch.map((Key: any) => {
         return {
@@ -43,10 +43,10 @@ const batchDelete = async (tableName: string, batch: any[], dbClient: DocumentCl
     })
     return dbClient.batchWrite({
         RequestItems
-    }).promise()
+    })
 }
 
-const batchWrite = async (tableName: string, batch: any[], dbClient: DocumentClient) => {
+const batchWrite = async (tableName: string, batch: any[], dbClient: DynamodbClient) => {
     const RequestItems: any = {}
     RequestItems[tableName] = batch.map((Item: any) => {
         return {
@@ -57,7 +57,7 @@ const batchWrite = async (tableName: string, batch: any[], dbClient: DocumentCli
     })
     return dbClient.batchWrite({
         RequestItems
-    }).promise()
+    })
 }
 
 export class DynamodbQueryRunner implements QueryRunner {
@@ -163,8 +163,7 @@ export class DynamodbQueryRunner implements QueryRunner {
     async deleteMany (tableName: string, keys: ObjectLiteral[], options?: DeleteManyOptions): Promise<void> {
         if (keys.length > 0) {
             const batchOptions = options || { maxConcurrency: 8 }
-            const AWS = PlatformTools.load('aws-sdk')
-            const dbClient = new AWS.DynamoDB.DocumentClient()
+            const dbClient = new DynamodbClient()
             const batches = batchHelper.batch(keys)
             await asyncPool(batchOptions.maxConcurrency, batches, (batch: any[][]) => {
                 return batchDelete(tableName, batch, dbClient)
@@ -176,13 +175,12 @@ export class DynamodbQueryRunner implements QueryRunner {
      * Delete a document on DynamoDB.
      */
     async deleteOne (tableName: string, key: ObjectLiteral): Promise<void> {
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const dbClient = new DynamodbClient()
         const params = {
             TableName: tableName,
             Key: key
         }
-        await dbClient.delete(params).promise()
+        await dbClient.delete(params)
     }
 
     /**
@@ -192,8 +190,7 @@ export class DynamodbQueryRunner implements QueryRunner {
         if (docs.length > 0) {
             const batchOptions = options || { maxConcurrency: 8 }
             const batches = batchHelper.batch(docs)
-            const AWS = PlatformTools.load('aws-sdk')
-            const dbClient = new AWS.DynamoDB.DocumentClient()
+            const dbClient = new DynamodbClient()
             await asyncPool(batchOptions.maxConcurrency, batches, (batch: any[][]) => {
                 return batchWrite(tableName, batch, dbClient)
             })
@@ -204,8 +201,7 @@ export class DynamodbQueryRunner implements QueryRunner {
      * Inserts a single document into DynamoDB.
      */
     async putOne (tableName: string, doc: ObjectLiteral): Promise<ObjectLiteral> {
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const dbClient = new DynamodbClient()
         const params = {
             TableName: tableName,
             Item: doc
@@ -631,8 +627,7 @@ export class DynamodbQueryRunner implements QueryRunner {
      * Drops collection.
      */
     clearTable (tableName: string): Promise<void> {
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const dbClient = new DynamodbClient()
         return dbClient.deleteTable({
             TableName: tableName
         })

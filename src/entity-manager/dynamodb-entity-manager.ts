@@ -16,7 +16,6 @@ import {
 } from 'typeorm'
 import { DynamodbQueryRunner } from '../driver/dynamodb-query-runner'
 import { DynamodbDriver } from '../driver/dynamodb-driver'
-import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { paramHelper } from '../helpers/param-helper'
 import { FindOptions } from '../models/find-options'
@@ -26,6 +25,7 @@ import { ScanOptions } from '../models/scan-options'
 import { UpdateOptions } from '../models/update-options'
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
 import { commonUtils } from '@lmig/legal-nodejs-utils'
+import { DynamodbClient } from '../clients/dynamodb-client'
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
@@ -66,11 +66,9 @@ export class DynamoDbEntityManager extends EntityManager {
     }
 
     async update<Entity> (entityClassOrName: EntityTarget<Entity>, options: UpdateOptions) {
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const params = paramHelper.update(metadata.tablePath, options)
-        return dbClient.update(params).promise()
+        return new DynamodbClient().update(params)
     }
 
     /**
@@ -78,11 +76,10 @@ export class DynamoDbEntityManager extends EntityManager {
      */
     async find<Entity> (entityClassOrName: EntityTarget<Entity>, options?: FindOptions | any): Promise<Entity[]> {
         if (options) {
-            const AWS = PlatformTools.load('aws-sdk')
-            const dbClient = new AWS.DynamoDB.DocumentClient()
+            const dbClient = new DynamodbClient()
             const metadata = this.connection.getMetadata(entityClassOrName)
             const params = paramHelper.find(metadata.tablePath, options)
-            const results = commonUtils.isEmpty(options.where) ? await dbClient.scan(params).promise() : await dbClient.query(params).promise()
+            const results = commonUtils.isEmpty(options.where) ? await dbClient.scan(params) : await dbClient.query(params)
             const items: any = results.Items || []
             items.lastEvaluatedKey = results.LastEvaluatedKey
             return items
@@ -95,24 +92,22 @@ export class DynamoDbEntityManager extends EntityManager {
      */
     async findAll<Entity> (entityClassOrName: EntityTarget<Entity>, options: FindOptions): Promise<Entity[]> {
         delete options.limit
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const dbClient = new DynamodbClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const params = paramHelper.find(metadata.tablePath, options)
         let items: any[] = []
-        let results = await dbClient.query(params).promise()
+        let results = await dbClient.query(params)
         items = items.concat(results.Items || [])
         while (results.LastEvaluatedKey) {
             params.ExclusiveStartKey = results.LastEvaluatedKey
-            results = await dbClient.query(params).promise()
+            results = await dbClient.query(params)
             items = items.concat(results.Items || [])
         }
         return items
     }
 
     async scan<Entity> (entityClassOrName: EntityTarget<Entity>, options: ScanOptions) {
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const dbClient = new DynamodbClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const params: any = {
             TableName: metadata.tablePath
@@ -126,7 +121,7 @@ export class DynamoDbEntityManager extends EntityManager {
         if (options.exclusiveStartKey) {
             params.ExclusiveStartKey = options.exclusiveStartKey
         }
-        const results: any = await dbClient.scan(params).promise()
+        const results: any = await dbClient.scan(params)
         const items = results.Items || []
         items.LastEvaluatedKey = results.LastEvaluatedKey
         return items
@@ -138,8 +133,7 @@ export class DynamoDbEntityManager extends EntityManager {
     async findOne<Entity> (entityClassOrName: EntityTarget<Entity>,
         optionsOrConditions?: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindOneOptions<Entity> | DeepPartial<Entity>,
         maybeOptions?: FindOneOptions<Entity>): Promise<Entity | undefined> {
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const dbClient = new DynamodbClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const id = typeof optionsOrConditions === 'string' ? optionsOrConditions : undefined
         const findOneOptionsOrConditions = (id ? maybeOptions : optionsOrConditions) as any
@@ -154,7 +148,7 @@ export class DynamoDbEntityManager extends EntityManager {
             options.limit = 1
         }
         const params = paramHelper.find(metadata.tablePath, options)
-        const results = await dbClient.query(params).promise()
+        const results = await dbClient.query(params)
         const items: any = results.Items || []
         return items.length > 0 ? items[0] : undefined
     }
@@ -247,8 +241,7 @@ export class DynamoDbEntityManager extends EntityManager {
      * Read from DynamoDB in batches.
      */
     async batchRead<Entity> (entityClassOrName: EntityTarget<Entity>, keys: ObjectLiteral[]) {
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const dbClient = new DynamodbClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const batches = batchHelper.batch(keys, 100)
         let items: any[] = []
@@ -260,7 +253,7 @@ export class DynamoDbEntityManager extends EntityManager {
             }
             const response = await dbClient.batchGet({
                 RequestItems: requestItems
-            }).promise()
+            })
             if (response.Responses !== undefined) {
                 items = items.concat(response.Responses[metadata.tablePath])
             }
@@ -272,8 +265,7 @@ export class DynamoDbEntityManager extends EntityManager {
      * Put an array of documents into DynamoDB in batches.
      */
     async batchWrite<Entity> (entityClassOrName: EntityTarget<Entity>, writes: BatchWriteItem[]) {
-        const AWS = PlatformTools.load('aws-sdk')
-        const dbClient = new AWS.DynamoDB.DocumentClient()
+        const dbClient = new DynamodbClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const batches = batchHelper.batch(writes, 25)
         for (let i = 0; i < batches.length; i++) {
@@ -288,7 +280,7 @@ export class DynamoDbEntityManager extends EntityManager {
             })
             await dbClient.batchWrite({
                 RequestItems: requestItems
-            }).promise()
+            })
         }
     }
 }
