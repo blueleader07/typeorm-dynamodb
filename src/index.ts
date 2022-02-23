@@ -15,6 +15,7 @@ import { DynamoPage } from './models/dynamo-page'
 import { YesNoIndicatorTransformer } from './transformers/yes-no-indicator-transformer'
 import { BigNumberTransformer } from './transformers/big-number-transformer'
 import { DynamodbClient } from './clients/dynamodb-client'
+import { GlobalSecondaryIndex } from './decorators/global-secondary-index'
 
 export {
     auditHelper,
@@ -23,6 +24,7 @@ export {
     BaseEntity,
     BigNumberTransformer,
     DynamodbRepository,
+    GlobalSecondaryIndex,
     PagingAndSortingRepository,
     DynamoPage,
     tableHelper,
