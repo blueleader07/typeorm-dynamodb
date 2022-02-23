@@ -23,7 +23,8 @@ export function GlobalSecondaryIndex (options: GlobalSecondaryIndexOptions): Cla
         getMetadataArgsStorage().indices.push({
             target: propertyName ? clsOrObject.constructor : clsOrObject as Function,
             name: name,
-            columns: propertyName ? [propertyName] : partitionColumns
+            columns: propertyName ? [propertyName] : partitionColumns,
+            where: options.sortKey
         } as IndexMetadataArgs)
     }
 }

@@ -9,7 +9,7 @@ import { AddOptions } from '../../src/models/add-options'
 
 describe('datasource-manager', () => {
     beforeEach(async () => {
-        await MockEntityManager()
+        // await MockEntityManager()
         const AWS = PlatformTools.load('aws-sdk')
         AWS.config.update({
             region: 'us-east-1',
@@ -25,6 +25,15 @@ describe('datasource-manager', () => {
         await connection.synchronize(true)
         // let's make sure we don't choke when it already exists
         await connection.synchronize()
+
+        const repository = await datasourceManager.getCustomRepository(DummyRepository)
+        const dummy = new Dummy()
+        dummy.id = '456'
+        dummy.name = 'dummy'
+        dummy.adjustmentGroupId = '123'
+        dummy.adjustmentStatus = 'staged'
+        await repository.put(dummy)
+
         expect(true).toBe(true)
     })
     it('insert and delete', async (): Promise<any> => {

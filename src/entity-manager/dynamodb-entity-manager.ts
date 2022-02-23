@@ -26,6 +26,7 @@ import { UpdateOptions } from '../models/update-options'
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
 import { commonUtils } from '@lmig/legal-nodejs-utils'
 import { DynamodbClient } from '../clients/dynamodb-client'
+import { indexedColumns } from '../helpers/global-secondary-index-helper'
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
@@ -67,6 +68,8 @@ export class DynamoDbEntityManager extends EntityManager {
 
     async update<Entity> (entityClassOrName: EntityTarget<Entity>, options: UpdateOptions) {
         const metadata = this.connection.getMetadata(entityClassOrName)
+        // TODO: needs to be smart enough to set the indexedColumns if any of the underlying columns are changed
+        indexedColumns(metadata, entityClassOrName)
         const params = paramHelper.update(metadata.tablePath, options)
         return new DynamodbClient().update(params)
     }
@@ -226,6 +229,9 @@ export class DynamoDbEntityManager extends EntityManager {
      */
     putMany<Entity> (entityClassOrName: EntityTarget<Entity>, docs: ObjectLiteral[]): Promise<void> {
         const metadata = this.connection.getMetadata(entityClassOrName)
+        docs.forEach((doc: ObjectLiteral) => {
+            indexedColumns(metadata, doc)
+        })
         return this.dynamodbQueryRunner.putMany(metadata.tablePath, docs)
     }
 
@@ -234,6 +240,7 @@ export class DynamoDbEntityManager extends EntityManager {
      */
     putOne<Entity> (entityClassOrName: EntityTarget<Entity>, doc: ObjectLiteral): Promise<ObjectLiteral> {
         const metadata = this.connection.getMetadata(entityClassOrName)
+        indexedColumns(metadata, doc)
         return this.dynamodbQueryRunner.putOne(metadata.tablePath, doc)
     }
 
@@ -264,6 +271,7 @@ export class DynamoDbEntityManager extends EntityManager {
     /**
      * Put an array of documents into DynamoDB in batches.
      */
+    // TODO: ... how do we update the indexColumn values here ... ?
     async batchWrite<Entity> (entityClassOrName: EntityTarget<Entity>, writes: BatchWriteItem[]) {
         const dbClient = new DynamodbClient()
         const metadata = this.connection.getMetadata(entityClassOrName)

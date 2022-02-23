@@ -15,4 +15,6 @@ export class Dummy extends BaseEntity {
 
     // in dynamodb  we don't need to map all columns
     name: string
+
+    lineItemNumber: number
 }
