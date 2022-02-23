@@ -131,6 +131,7 @@ let connection: any = null
 
 export class DatasourceManagerOptions {
     entities?: ((Function | string | EntitySchema))[];
+    synchronize?: boolean
 }
 
 const DEFAULT_OPTIONS: DatasourceManagerOptions = {
@@ -146,6 +147,10 @@ export const datasourceManager = {
                 entities: options?.entities
             }
             connection = await connectionManager.create(connectionOptions)
+        }
+        if (options.synchronize) {
+            console.log('synchronizing database ... ')
+            await connection.synchronize()
         }
         return connection
     },
