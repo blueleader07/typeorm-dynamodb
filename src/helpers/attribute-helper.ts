@@ -1,5 +1,6 @@
 import { commonUtils } from '@lmig/legal-nodejs-utils'
 import { BeginsWith } from '../models/find-options'
+import { poundToUnderscore } from '../models/text-helper'
 
 export const attributeHelper = {
 
@@ -9,11 +10,11 @@ export const attributeHelper = {
             const keys = Object.keys(object)
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i]
-                attributeNames[`#${key}`] = key
+                attributeNames[`#${poundToUnderscore(key)}`] = key
             }
         }
         if (beginsWith) {
-            attributeNames[`#${beginsWith.attribute}`] = beginsWith.attribute
+            attributeNames[`#${poundToUnderscore(beginsWith.attribute)}`] = beginsWith.attribute
         }
         return attributeNames
     }

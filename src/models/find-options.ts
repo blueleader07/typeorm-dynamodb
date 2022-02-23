@@ -1,5 +1,6 @@
 import { attributeHelper } from '../helpers/attribute-helper'
 import { commonUtils } from '@lmig/legal-nodejs-utils'
+import { poundToUnderscore } from './text-helper'
 
 export class BeginsWith {
     attribute: string
@@ -24,7 +25,8 @@ export class FindOptions {
             const values = []
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i]
-                values.push(`#${key} = :${key}`)
+                const attribute = poundToUnderscore(key)
+                values.push(`#${attribute} = :${attribute}`)
             }
             return FindOptions.appendBeginsWith(values.join(' and '), findOptions.beginsWith)
         }
@@ -33,7 +35,8 @@ export class FindOptions {
 
     static appendBeginsWith (expression: string, beginsWith?: BeginsWith) {
         if (beginsWith) {
-            return `${expression} and begins_with(#${beginsWith.attribute}, :${beginsWith.attribute})`
+            const attribute = poundToUnderscore(beginsWith.attribute)
+            return `${expression} and begins_with(#${attribute}, :${attribute})`
         }
         return expression
     }
@@ -44,10 +47,10 @@ export class FindOptions {
             const values: any = {}
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i]
-                values[`:${key}`] = findOptions.where[key]
+                values[`:${poundToUnderscore(key)}`] = findOptions.where[key]
             }
             if (findOptions.beginsWith) {
-                values[`:${findOptions.beginsWith.attribute}`] = findOptions.beginsWith.value
+                values[`:${poundToUnderscore(findOptions.beginsWith.attribute)}`] = findOptions.beginsWith.value
             }
             return values
         }
