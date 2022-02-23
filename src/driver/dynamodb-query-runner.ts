@@ -206,7 +206,7 @@ export class DynamodbQueryRunner implements QueryRunner {
             TableName: tableName,
             Item: doc
         }
-        await dbClient.put(params).promise()
+        await dbClient.put(params)
         return doc
     }
 

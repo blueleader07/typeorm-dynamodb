@@ -14,6 +14,7 @@ import { Pageable, Page, Sort, Order, pageableRoutes } from '@lmig/legal-nodejs-
 import { DynamoPage } from './models/dynamo-page'
 import { YesNoIndicatorTransformer } from './transformers/yes-no-indicator-transformer'
 import { BigNumberTransformer } from './transformers/big-number-transformer'
+import { DynamodbClient } from './clients/dynamodb-client'
 
 export {
     auditHelper,
@@ -36,5 +37,6 @@ export {
     pageableRoutes,
     User,
     BatchWriteItem,
-    YesNoIndicatorTransformer
+    YesNoIndicatorTransformer,
+    DynamodbClient
 }
