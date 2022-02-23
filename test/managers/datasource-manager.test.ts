@@ -20,13 +20,13 @@ describe('datasource-manager', () => {
     afterEach(() => {
         sinon.restore()
     })
-    // it('create', async (): Promise<any> => {
-    //     const connection = await datasourceManager.open({ entities: [DummyEntity] })
-    //     await connection.synchronize(true)
-    //     // let's make sure we don't choke when it already exists
-    //     await connection.synchronize()
-    //     expect(true).toBe(true)
-    // })
+    it('create', async (): Promise<any> => {
+        const connection = await datasourceManager.open({ entities: [Dummy] })
+        await connection.synchronize(true)
+        // let's make sure we don't choke when it already exists
+        await connection.synchronize()
+        expect(true).toBe(true)
+    })
     it('insert and delete', async (): Promise<any> => {
         sinon.stub(DummyRepository.prototype, 'put').resolves()
         sinon.stub(DummyRepository.prototype, 'deleteOne').resolves()
