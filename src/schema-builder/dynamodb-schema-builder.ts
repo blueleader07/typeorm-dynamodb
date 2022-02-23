@@ -3,6 +3,7 @@ import { SchemaBuilder } from 'typeorm/schema-builder/SchemaBuilder'
 import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
 import { DynamodbDriver } from '../driver/dynamodb-driver'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
+import { buildGlobalSecondaryIndexes } from '../helpers/global-secondary-index-helper'
 
 /**
  * Creates complete tables schemas in the database based on the entity metadatas.
@@ -38,18 +39,18 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
         const db = new AWS.DynamoDB({ apiVersion: '2012-08-10' })
         const driver: DynamodbDriver = this.connection.driver as DynamodbDriver
         const metadatas = this.connection.entityMetadatas
-        for (let i = 0; i < metadatas.length; i++) {
+        for (let i = 0; i < metadatas.length; i += 1) {
             const metadata = metadatas[i]
             const attributeDefinitions: any[] = []
             const keySchema: any[] = []
-            for (let i = 0; i < metadata.primaryColumns.length; i++) {
+            for (let i = 0; i < metadata.primaryColumns.length; i += 1) {
                 const primaryColumn = metadata.primaryColumns[i]
                 attributeDefinitions.push({
                     AttributeName: primaryColumn.propertyName,
                     AttributeType: driver.normalizeDynamodbType(primaryColumn)
                 })
             }
-            for (let i = 0; i < metadata.primaryColumns.length; i++) {
+            for (let i = 0; i < metadata.primaryColumns.length; i += 1) {
                 const primaryColumn = metadata.primaryColumns[i]
                 keySchema.push({
                     AttributeName: primaryColumn.propertyName,
@@ -60,7 +61,8 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
                 AttributeDefinitions: attributeDefinitions,
                 BillingMode: 'PAY_PER_REQUEST',
                 TableName: metadata.tableName,
-                KeySchema: keySchema
+                KeySchema: keySchema,
+                GlobalSecondaryIndexes: buildGlobalSecondaryIndexes(metadata)
             }
             try {
                 await db.createTable(schema).promise()
