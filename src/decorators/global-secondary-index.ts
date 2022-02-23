@@ -3,8 +3,8 @@ import { IndexMetadataArgs } from 'typeorm/metadata-args/IndexMetadataArgs'
 
 export interface GlobalSecondaryIndexOptions {
     name: string
-    partitionKey: string
-    sortKey: string
+    partitionKey: string | string[]
+    sortKey: string | string[]
 }
 
 /**
@@ -16,7 +16,7 @@ export function GlobalSecondaryIndex (options: GlobalSecondaryIndexOptions): Cla
     // normalize parameters
     options = options || {}
     const name = options.name
-    const partitionColumns = options.partitionKey.split('#')
+    const partitionColumns = Array.isArray(options.partitionKey) ? options.partitionKey : [options.partitionKey]
     // const fields = [options.partitionKey, options.sortKey]
 
     return function (clsOrObject: Function|Object, propertyName?: string | symbol) {
@@ -24,7 +24,7 @@ export function GlobalSecondaryIndex (options: GlobalSecondaryIndexOptions): Cla
             target: propertyName ? clsOrObject.constructor : clsOrObject as Function,
             name: name,
             columns: propertyName ? [propertyName] : partitionColumns,
-            where: options.sortKey
+            where: Array.isArray(options.sortKey) ? options.sortKey.join('#') : options.sortKey
         } as IndexMetadataArgs)
     }
 }

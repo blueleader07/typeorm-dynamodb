@@ -2,10 +2,10 @@ import expect from 'expect'
 import { datasourceManager } from '../../src/managers/datasource-manager'
 import sinon from 'sinon'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
-import { MockEntityManager } from '../mocks/mock-typeorm'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
 import { AddOptions } from '../../src/models/add-options'
+import { MockEntityManager } from '../mocks/mock-typeorm'
 
 describe('datasource-manager', () => {
     beforeEach(async () => {
@@ -32,7 +32,20 @@ describe('datasource-manager', () => {
         // dummy.name = 'dummy'
         // dummy.adjustmentGroupId = '123'
         // dummy.adjustmentStatus = 'staged'
+        // dummy.lineItemNumber = 7
         // await repository.put(dummy)
+        //
+        // environmentUtils.setVariable('DEBUG_DYNAMODB', 'true')
+        //
+        // const result = await repository.find({
+        //     index: 'adjustmentGroupIdStatusIndex',
+        //     where: {
+        //         adjustmentGroupId: '123',
+        //         adjustmentStatus: 'staged'
+        //     }
+        // })
+        //
+        // console.log('results', result)
         //
         expect(true).toBe(true)
     })

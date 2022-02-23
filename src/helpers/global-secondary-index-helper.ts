@@ -1,7 +1,8 @@
 import { EntityMetadata, ObjectLiteral } from 'typeorm'
 import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata'
+import { DynamodbDriver } from '../driver/dynamodb-driver'
 
-const buildPartitionKey = (columns: ColumnMetadata[]) => {
+export const buildPartitionKey = (columns: ColumnMetadata[]) => {
     return columns.map((column) => {
         return column.propertyName
     }).join('#')
@@ -14,10 +15,6 @@ const partitionKeyColumns = (columns: ColumnMetadata[], doc: ObjectLiteral) => {
             return doc[column.propertyName]
         }).join('#')
     }
-}
-
-const buildSortKey = (sortKey: string) => {
-
 }
 
 const sortKeyColumns = (sortKey: string, doc: ObjectLiteral) => {
@@ -37,6 +34,66 @@ export const indexedColumns = (metadata: EntityMetadata, doc: any) => {
         partitionKeyColumns(columns, doc)
         sortKeyColumns(index.where || '', doc)
     }
+}
+
+export const buildAttributeDefinitions = (metadata: EntityMetadata, driver: DynamodbDriver) => {
+    const attributeMap = new Map()
+
+    // PRIMARY KEY ATTRIBUTES
+    for (let i = 0; i < metadata.primaryColumns.length; i += 1) {
+        const primaryColumn = metadata.primaryColumns[i]
+        attributeMap.set(primaryColumn.propertyName, {
+            AttributeName: primaryColumn.propertyName,
+            AttributeType: driver.normalizeDynamodbType(primaryColumn)
+        })
+    }
+
+    // PARTITION ATTRIBUTES
+    const indices = metadata.indices || []
+    for (let i = 0; i < indices.length; i += 1) {
+        const index = indices[i]
+        const columns = index.columns || []
+        // PARTITION ATTRIBUTES
+        const partitionKey = buildPartitionKey(columns)
+        if (partitionKey.includes('#')) {
+            attributeMap.set(partitionKey, {
+                AttributeName: partitionKey,
+                AttributeType: 'S'
+            })
+        } else {
+            const column = metadata.columns.find((column) => {
+                return column.propertyName === partitionKey
+            })
+            if (column) {
+                attributeMap.set(partitionKey, {
+                    AttributeName: partitionKey,
+                    AttributeType: driver.normalizeDynamodbType(column)
+                })
+            }
+        }
+
+        // SORT KEY ATTRIBUTES
+        const sortKey = index.where || ''
+        if (sortKey.includes('#')) {
+            attributeMap.set(sortKey, {
+                AttributeName: sortKey,
+                AttributeType: 'S'
+            })
+        } else {
+            const column = metadata.columns.find((column) => {
+                return column.propertyName === sortKey
+            })
+            if (column) {
+                attributeMap.set(sortKey, {
+                    AttributeName: sortKey,
+                    AttributeType: driver.normalizeDynamodbType(column)
+                })
+            }
+        }
+    }
+
+    // RETURN UNIQUE VALUES
+    return Array.from(attributeMap.values())
 }
 
 export const buildGlobalSecondaryIndexes = (metadata: EntityMetadata) => {

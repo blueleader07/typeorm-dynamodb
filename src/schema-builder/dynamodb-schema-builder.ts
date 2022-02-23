@@ -3,7 +3,10 @@ import { SchemaBuilder } from 'typeorm/schema-builder/SchemaBuilder'
 import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
 import { DynamodbDriver } from '../driver/dynamodb-driver'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
-import { buildGlobalSecondaryIndexes } from '../helpers/global-secondary-index-helper'
+import {
+    buildAttributeDefinitions,
+    buildGlobalSecondaryIndexes
+} from '../helpers/global-secondary-index-helper'
 
 /**
  * Creates complete tables schemas in the database based on the entity metadatas.
@@ -41,15 +44,7 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
         const metadatas = this.connection.entityMetadatas
         for (let i = 0; i < metadatas.length; i += 1) {
             const metadata = metadatas[i]
-            const attributeDefinitions: any[] = []
             const keySchema: any[] = []
-            for (let i = 0; i < metadata.primaryColumns.length; i += 1) {
-                const primaryColumn = metadata.primaryColumns[i]
-                attributeDefinitions.push({
-                    AttributeName: primaryColumn.propertyName,
-                    AttributeType: driver.normalizeDynamodbType(primaryColumn)
-                })
-            }
             for (let i = 0; i < metadata.primaryColumns.length; i += 1) {
                 const primaryColumn = metadata.primaryColumns[i]
                 keySchema.push({
@@ -58,7 +53,7 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
                 })
             }
             const schema = {
-                AttributeDefinitions: attributeDefinitions,
+                AttributeDefinitions: buildAttributeDefinitions(metadata, driver),
                 BillingMode: 'PAY_PER_REQUEST',
                 TableName: metadata.tableName,
                 KeySchema: keySchema,
