@@ -55,7 +55,7 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
             const schema = {
                 AttributeDefinitions: buildAttributeDefinitions(metadata, driver),
                 BillingMode: 'PAY_PER_REQUEST',
-                TableName: metadata.tableName,
+                TableName: driver.buildTableName(metadata.tableName, metadata.schema, metadata.database),
                 KeySchema: keySchema,
                 GlobalSecondaryIndexes: buildGlobalSecondaryIndexes(metadata)
             }
