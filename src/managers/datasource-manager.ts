@@ -135,12 +135,13 @@ export class DatasourceManagerOptions {
 }
 
 const DEFAULT_OPTIONS: DatasourceManagerOptions = {
-    entities: ['**/entities/**/*.{js,ts}']
+    entities: ['**/entities/**/*.{js,ts}'],
+    synchronize: false
 }
 
 export const datasourceManager = {
     async open (options: DatasourceManagerOptions) {
-        options = commonUtils.mixin(DEFAULT_OPTIONS, options)
+        options = commonUtils.mixin({ ...DEFAULT_OPTIONS }, options)
         if (!connection) {
             const connectionOptions: any = {
                 type: 'dynamodb',

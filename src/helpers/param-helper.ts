@@ -10,7 +10,7 @@ const indexedWhere = (options: FindOptions, indices?: IndexMetadata[]) => {
         return index.name === options.index
     })
     const where: any = {}
-    if (index) {
+    if (index && options.where) {
         const columns = index.columns || []
         const partitionKey = buildPartitionKey(columns)
         const values = []
