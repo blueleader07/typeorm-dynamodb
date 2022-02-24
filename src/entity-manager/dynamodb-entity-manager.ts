@@ -81,7 +81,7 @@ export class DynamoDbEntityManager extends EntityManager {
         if (options) {
             const dbClient = new DynamodbClient()
             const metadata = this.connection.getMetadata(entityClassOrName)
-            const params = paramHelper.find(metadata.tableName, options, metadata.indices)
+            const params = paramHelper.find(metadata.tablePath, options, metadata.indices)
             const results = commonUtils.isEmpty(options.where) ? await dbClient.scan(params) : await dbClient.query(params)
             const items: any = results.Items || []
             items.lastEvaluatedKey = results.LastEvaluatedKey
