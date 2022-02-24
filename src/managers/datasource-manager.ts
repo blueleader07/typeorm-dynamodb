@@ -10,7 +10,7 @@ import {
 } from 'typeorm-transactional-cls-hooked'
 import { DynamodbDriver } from '../driver/dynamodb-driver'
 import { connectionManager } from './connection-manager'
-import { commonUtils } from '@lmig/legal-nodejs-utils'
+import { commonUtils, environmentUtils } from '@lmig/legal-nodejs-utils'
 import { DriverFactory } from 'typeorm/driver/DriverFactory'
 import { RepositoryFactory } from 'typeorm/repository/RepositoryFactory'
 import { DynamodbRepository } from '../repositories/dynamodb-repository'
@@ -150,6 +150,15 @@ export const datasourceManager = {
         }
         if (options.synchronize) {
             console.log('synchronizing database ... ')
+            const endpoint = environmentUtils.getVariable('DYNAMO_ENDPOINT')
+            if (endpoint) {
+                const region = environmentUtils.getVariable('DYNAMO_ENDPOINT') || 'us-east-1'
+                const AWS = PlatformTools.load('aws-sdk')
+                AWS.config.update({
+                    region,
+                    endpoint
+                })
+            }
             await connection.synchronize()
         }
         return connection
