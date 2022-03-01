@@ -1,6 +1,6 @@
 import { auditHelper } from './helpers/audit-helper'
 import { datasourceInitializer } from './middleware/datasource-initializer'
-import { datasourceManager } from './managers/datasource-manager'
+import { datasourceManager, DatasourceManagerOptions } from './managers/datasource-manager'
 import { BaseEntity } from './entities/base-entity'
 import { DynamodbRepository } from './repositories/dynamodb-repository'
 import { PagingAndSortingRepository } from './repositories/paging-and-sorting-repository'
@@ -21,6 +21,7 @@ export {
     auditHelper,
     datasourceInitializer,
     datasourceManager,
+    DatasourceManagerOptions,
     BaseEntity,
     BigNumberTransformer,
     DynamodbRepository,

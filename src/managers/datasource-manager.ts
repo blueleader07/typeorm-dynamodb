@@ -1,8 +1,16 @@
 import { ObjectType } from 'typeorm/common/ObjectType'
 import { EntitySchema } from 'typeorm/entity-schema/EntitySchema'
 import {
-    Connection, EntityManager, EntityMetadata,
-    EntityTarget, QueryRunner, Repository
+    Connection,
+    Driver,
+    EntityManager,
+    EntityMetadata,
+    EntityTarget,
+    MissingDriverError,
+    MongoEntityManager,
+    MongoRepository,
+    QueryRunner,
+    Repository, TreeRepository
 } from 'typeorm'
 import {
     initializeTransactionalContext,
@@ -18,21 +26,132 @@ import { EntityManagerFactory } from 'typeorm/entity-manager/EntityManagerFactor
 import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import path from 'path'
+import { MongoDriver } from 'typeorm/driver/mongodb/MongoDriver'
+import { SqljsDriver } from 'typeorm/driver/sqljs/SqljsDriver'
+import { SqljsEntityManager } from 'typeorm/entity-manager/SqljsEntityManager'
+import { PostgresDriver } from 'typeorm/driver/postgres/PostgresDriver'
+import { CockroachDriver } from 'typeorm/driver/cockroachdb/CockroachDriver'
+import { SapDriver } from 'typeorm/driver/sap/SapDriver'
+import { SqliteDriver } from 'typeorm/driver/sqlite/SqliteDriver'
+import { BetterSqlite3Driver } from 'typeorm/driver/better-sqlite3/BetterSqlite3Driver'
+import { CordovaDriver } from 'typeorm/driver/cordova/CordovaDriver'
+import { NativescriptDriver } from 'typeorm/driver/nativescript/NativescriptDriver'
+import { ReactNativeDriver } from 'typeorm/driver/react-native/ReactNativeDriver'
+import { OracleDriver } from 'typeorm/driver/oracle/OracleDriver'
+import { SqlServerDriver } from 'typeorm/driver/sqlserver/SqlServerDriver'
+import { ExpoDriver } from 'typeorm/driver/expo/ExpoDriver'
+import { AuroraDataApiDriver } from 'typeorm/driver/aurora-data-api/AuroraDataApiDriver'
+import { CapacitorDriver } from 'typeorm/driver/capacitor/CapacitorDriver'
+import { MysqlDriver } from 'typeorm/driver/mysql/MysqlDriver'
 
-DriverFactory.prototype.create = (connection: Connection) => {
-    return new DynamodbDriver(connection)
+DriverFactory.prototype.create = (connection: Connection): Driver => {
+    const { type } = connection.options
+    switch (type) {
+    case 'mysql':
+        return new MysqlDriver(connection)
+    case 'postgres':
+        return new PostgresDriver(connection)
+    case 'cockroachdb':
+        return new CockroachDriver(connection)
+    case 'sap':
+        return new SapDriver(connection)
+    case 'mariadb':
+        return new MysqlDriver(connection)
+    case 'sqlite':
+        return new SqliteDriver(connection)
+    case 'better-sqlite3':
+        return new BetterSqlite3Driver(connection)
+    case 'cordova':
+        return new CordovaDriver(connection)
+    case 'nativescript':
+        return new NativescriptDriver(connection)
+    case 'react-native':
+        return new ReactNativeDriver(connection)
+    case 'sqljs':
+        return new SqljsDriver(connection)
+    case 'oracle':
+        return new OracleDriver(connection)
+    case 'mssql':
+        return new SqlServerDriver(connection)
+    case 'mongodb':
+        return new MongoDriver(connection)
+    case 'expo':
+        return new ExpoDriver(connection)
+    case 'aurora-data-api':
+        return new AuroraDataApiDriver(connection)
+    case 'capacitor':
+        return new CapacitorDriver(connection)
+    // ts-ignore
+    case 'dynamodb':
+        return new DynamodbDriver(connection)
+    default:
+        throw new MissingDriverError(
+            type,
+            [
+                'aurora-data-api',
+                'better-sqlite3',
+                'capacitor',
+                'cockroachdb',
+                'cordova',
+                'dynamodb',
+                'expo',
+                'mariadb',
+                'mongodb',
+                'mssql',
+                'mysql',
+                'nativescript',
+                'oracle',
+                'postgres',
+                'react-native',
+                'sap',
+                'sqlite',
+                'sqljs'
+            ]
+        )
+    }
 }
 RepositoryFactory.prototype.create = (manager: EntityManager, metadata: EntityMetadata, queryRunner?: QueryRunner): Repository<any> => {
-    const repository: any = new DynamodbRepository()
-    Object.assign(repository, {
-        manager: manager,
-        metadata: metadata,
-        queryRunner: queryRunner
-    })
-    return repository
+    if (metadata.treeType) {
+        // NOTE: dynamic access to protected properties. We need this to prevent unwanted properties in those classes to be exposed,
+        // however we need these properties for internal work of the class
+        const repository = new TreeRepository<any>()
+        Object.assign(repository, {
+            manager: manager,
+            metadata: metadata,
+            queryRunner: queryRunner
+        })
+        return repository
+    } else {
+        // NOTE: dynamic access to protected properties. We need this to prevent unwanted properties in those classes to be exposed,
+        // however we need these properties for internal work of the class
+        let repository: Repository<any>
+        if (manager.connection.driver instanceof MongoDriver) {
+            repository = new MongoRepository()
+        } else if (manager.connection.driver instanceof DynamodbDriver) {
+            repository = new DynamodbRepository()
+        } else {
+            repository = new Repository<any>()
+        }
+        Object.assign(repository, {
+            manager: manager,
+            metadata: metadata,
+            queryRunner: queryRunner
+        })
+
+        return repository
+    }
 }
 EntityManagerFactory.prototype.create = (connection: Connection, queryRunner?: QueryRunner): EntityManager => {
-    return new DynamoDbEntityManager(connection)
+    if (connection.driver instanceof MongoDriver) {
+        return new MongoEntityManager(connection)
+    }
+    if (connection.driver instanceof SqljsDriver) {
+        return new SqljsEntityManager(connection, queryRunner)
+    }
+    if (connection.driver instanceof DynamodbDriver) {
+        return new DynamoDbEntityManager(connection)
+    }
+    throw new Error('Unknown driver')
 }
 PlatformTools.load = function (name) {
     // if name is not absolute or relative, then try to load package from the node_modules of the directory we are currently in
@@ -130,6 +249,7 @@ patchTypeORMRepositoryWithBaseRepository()
 let connection: any = null
 
 export class DatasourceManagerOptions {
+    name?: string
     entities?: ((Function | string | EntitySchema))[];
     synchronize?: boolean
 }
@@ -144,6 +264,7 @@ export const datasourceManager = {
         options = commonUtils.mixin({ ...DEFAULT_OPTIONS }, options)
         if (!connection) {
             const connectionOptions: any = {
+                name: options.name,
                 type: 'dynamodb',
                 entities: options?.entities
             }
