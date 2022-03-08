@@ -149,19 +149,22 @@ export const datasourceManager = {
             }
             connection = await connectionManager.create(connectionOptions)
         }
+
+        const endpoint = environmentUtils.getVariable('DYNAMO_ENDPOINT')
+        if (endpoint) {
+            const region = environmentUtils.getVariable('DYNAMO_REGION') || 'us-east-1'
+            const AWS = PlatformTools.load('aws-sdk')
+            AWS.config.update({
+                region,
+                endpoint
+            })
+        }
+
         if (options.synchronize) {
             console.log('synchronizing database ... ')
-            const endpoint = environmentUtils.getVariable('DYNAMO_ENDPOINT')
-            if (endpoint) {
-                const region = environmentUtils.getVariable('DYNAMO_REGION') || 'us-east-1'
-                const AWS = PlatformTools.load('aws-sdk')
-                AWS.config.update({
-                    region,
-                    endpoint
-                })
-            }
             await connection.synchronize()
         }
+
         return connection
     },
 
