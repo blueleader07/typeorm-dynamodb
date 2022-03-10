@@ -16,6 +16,8 @@ import { YesNoIndicatorTransformer } from './transformers/yes-no-indicator-trans
 import { BigNumberTransformer } from './transformers/big-number-transformer'
 import { DynamodbClient } from './clients/dynamodb-client'
 import { GlobalSecondaryIndex } from './decorators/global-secondary-index'
+import { jsonResponseAdapter } from './adapters/json-response-adapter'
+import { camelCaseAdapter } from './adapters/camel-case-adapter'
 
 export {
     auditHelper,
@@ -41,5 +43,7 @@ export {
     User,
     BatchWriteItem,
     YesNoIndicatorTransformer,
-    DynamodbClient
+    DynamodbClient,
+    jsonResponseAdapter,
+    camelCaseAdapter
 }
