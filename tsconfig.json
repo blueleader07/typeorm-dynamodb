@@ -4,16 +4,12 @@
     "strictPropertyInitialization":false,
     "declaration": true,
     "target": "es6",
-    "module": "commonjs",
+    "module": "CommonJS",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist/esm",
-    "lib": [
-      "es2020",
-      "dom"
-    ]
+    "outDir": "./dist"
   },
   "include": [
     "./src"
