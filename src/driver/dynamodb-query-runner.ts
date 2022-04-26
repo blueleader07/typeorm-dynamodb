@@ -684,6 +684,16 @@ export class DynamodbQueryRunner implements QueryRunner {
         return 'master'
     };
 
+    // added after a recent Typeorm update ... Dynamo is not using afterMigration()
+    afterMigration(): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    // added after a recent Typeorm update ... Dynamo is not using beforeMigration()
+    beforeMigration(): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
     // -------------------------------------------------------------------------
     // Protected Methods
     // -------------------------------------------------------------------------

@@ -18,9 +18,10 @@ import { View } from 'typeorm/schema-builder/view/View'
 import { DynamodbSchemaBuilder } from '../schema-builder/dynamodb-schema-builder'
 import { DynamodbQueryRunner } from './dynamodb-query-runner'
 import { ObjectUtils } from 'typeorm/util/ObjectUtils'
+import {UpsertType} from "typeorm/driver/types/UpsertType";
 
 /**
- * Organizes communication with MongoDB.
+ * Organizes communication with Dynamo.
  */
 export class DynamodbDriver implements Driver {
     /**
@@ -252,4 +253,10 @@ export class DynamodbDriver implements Driver {
     createParameter (parameterName: string, index: number): string {
         throw new Error('Method not implemented.')
     }
+
+    // added recently by Typeorm. Dynamo is not using supportedUpsertType
+    supportedUpsertType: UpsertType;
+
+    // added recently by Typeorm. Dynamo is not using transactionSupport
+    transactionSupport: "simple" | "nested" | "none";
 }
