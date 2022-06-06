@@ -1,4 +1,5 @@
-import { Connection } from 'typeorm'
+import { Connection, getMetadataArgsStorage } from 'typeorm'
+import { MetadataArgsStorage } from 'typeorm/metadata-args/MetadataArgsStorage'
 import { SchemaBuilder } from 'typeorm/schema-builder/SchemaBuilder'
 import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
 import { DynamodbDriver } from '../driver/dynamodb-driver'
@@ -7,6 +8,8 @@ import {
     buildAttributeDefinitions,
     buildGlobalSecondaryIndexes
 } from '../helpers/global-secondary-index-helper'
+
+export const metadataArgsStorage: MetadataArgsStorage = getMetadataArgsStorage()
 
 /**
  * Creates complete tables schemas in the database based on the entity metadatas.
