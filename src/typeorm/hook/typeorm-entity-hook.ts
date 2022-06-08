@@ -1,25 +1,24 @@
 import {
     buildIndexDetails,
     buildTableDetails,
-    findColumnDetails, findPrimaryColumn,
-    findTableName
+    findColumnDetails,
+    findPrimaryColumn
 } from '../helper/typeorm-table-metadata-helper'
 
 export const typeormEntityHook = (entity: any) => {
-    const tableName = findTableName(entity.name)
     Object.defineProperty(entity, 'tableDetails', {
         get (): any | undefined {
-            return buildTableDetails(tableName)
+            return buildTableDetails(entity.name)
         }
     })
     Object.defineProperty(entity, 'columnDetails', {
         get (): any[] | undefined {
-            return findColumnDetails(tableName)
+            return findColumnDetails(entity.name)
         }
     })
     Object.defineProperty(entity, 'indexDetails', {
         get (): any[] | undefined {
-            return buildIndexDetails(tableName)
+            return buildIndexDetails(entity.name)
         }
     })
     Object.defineProperty(entity, 'primaryColumn', {

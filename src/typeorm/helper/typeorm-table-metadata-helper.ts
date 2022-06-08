@@ -10,14 +10,9 @@ function findColumnAttributeType (tableName: string, columnName: string): string
     return column ? column.options.type : 'varchar'
 }
 
-export function findTableName (entityName: string): string {
-    const tableArgs = getMetadataArgsStorage().tables.find((table:TableMetadataArgs) => (typeof table.target === 'string') ? table.target === entityName : table.target.name === entityName)
-    return tableArgs ? tableArgs.name || entityName : entityName
-}
-
-export function findColumnDetails (tableName: string): ColumnMetadataArgs[] {
+export function findColumnDetails (targetName: string): ColumnMetadataArgs[] {
     return metadataArgsStorage.columns
-        .filter((column: any) => column.target === tableName)
+        .filter((column: any) => column.target.name === targetName)
         .map((column: any) => { return column })
 }
 
@@ -27,19 +22,20 @@ export function findColumn (tableName: string, columnName: string): ColumnMetada
         .map((column: ColumnMetadataArgs) => { return column })[0]
 }
 
-export function findPrimaryColumn (tableName: string): ColumnMetadataArgs {
-    return findColumnDetails(tableName)
+export function findPrimaryColumn (targetName: string): ColumnMetadataArgs {
+    return findColumnDetails(targetName)
         .filter((column: ColumnMetadataArgs) => column.options.primary)
         .map((column: ColumnMetadataArgs) => { return column })[0]
 }
 
-export function findTable (tableName: string) : TableMetadataArgs {
-    return <TableMetadataArgs>metadataArgsStorage.tables.find((table: any) => table.target === tableName)
+export function findTable (targetName: string) : TableMetadataArgs {
+    return <TableMetadataArgs>metadataArgsStorage.tables
+        .find((table:TableMetadataArgs) => (typeof table.target === 'string') ? table.target === targetName : table.target.name === targetName)
 }
 
-export function buildTableDetails (tableName: string): any {
-    const tableArgs = findTable(tableName)
-    const primaryColumn: ColumnMetadataArgs = findPrimaryColumn(tableName)
+export function buildTableDetails (targetName: string): any {
+    const tableArgs: TableMetadataArgs = findTable(targetName)
+    const primaryColumn: ColumnMetadataArgs = findPrimaryColumn(targetName)
     return {
         database: tableArgs.database,
         schema: tableArgs.schema,
