@@ -1,8 +1,6 @@
 import expect from 'expect'
 import { typeormEntityHook } from '../../src/typeorm/hook/typeorm-entity-hook'
 import { Dummy } from '../entities/dummy'
-import { parseAnnotations } from '../../src/parsers/annotation-parser'
-import { readFileSync } from 'fs'
 
 describe('typeorm-entity-hook', () => {
     it('happy path', async (): Promise<any> => {
@@ -10,12 +8,7 @@ describe('typeorm-entity-hook', () => {
         /** when: **/
         typeormEntityHook(dummy)
 
-        // Bob, does this get you what you need?  It's string parsing the annotations .. completely separate of Typeorm ...
-        // I originally wrote it for the hibernate-to-typeorm-converter...
-        // what if we put this in a typeorm-cdk library
-        const file = readFileSync('./test/entities/dummy.ts').toString('utf-8')
-        const entityAnnotation = parseAnnotations(file, 'Entity')
-        const globalSecondaryIndexes = parseAnnotations(file, 'GlobalSecondaryIndex')
+        // TODO: this doesn't seem to pass for me ...
 
         /** then: **/
         expect(dummy.tableDetails).toBeDefined()
