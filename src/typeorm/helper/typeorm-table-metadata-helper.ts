@@ -10,9 +10,13 @@ function findColumnAttributeType (tableName: string, columnName: string): string
     return column ? column.options.type : 'varchar'
 }
 
+function isMatch (target: Function | string, targetName: string) {
+    return (typeof target === 'string') ? target === targetName : target.name === targetName
+}
+
 export function findColumnDetails (targetName: string): ColumnMetadataArgs[] {
     return metadataArgsStorage.columns
-        .filter((column: any) => column.target.name === targetName)
+        .filter((column: any) => isMatch(column.target, targetName))
         .map((column: any) => { return column })
 }
 
@@ -30,7 +34,7 @@ export function findPrimaryColumn (targetName: string): ColumnMetadataArgs {
 
 export function findTable (targetName: string) : TableMetadataArgs {
     return <TableMetadataArgs>metadataArgsStorage.tables
-        .find((table:TableMetadataArgs) => (typeof table.target === 'string') ? table.target === targetName : table.target.name === targetName)
+        .find((table:TableMetadataArgs) => isMatch(table.target, targetName))
 }
 
 export function buildTableDetails (targetName: string): any {
@@ -50,7 +54,7 @@ export function buildTableDetails (targetName: string): any {
 
 export function buildIndexDetails (tableName: string): any[] {
     return metadataArgsStorage.indices
-        .filter((index: any) => index.target === tableName)
+        .filter((index: any) => isMatch(index.target, tableName))
         .map((index: any) => {
             const indexKey = Array.isArray(index.columns) ? index.columns.join('#') : ''
             return {
