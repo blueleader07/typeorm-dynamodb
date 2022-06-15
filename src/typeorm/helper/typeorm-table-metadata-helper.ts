@@ -5,9 +5,23 @@ import { ColumnMetadataArgs } from 'typeorm/metadata-args/ColumnMetadataArgs'
 
 export const metadataArgsStorage: MetadataArgsStorage = getMetadataArgsStorage()
 
+function convertToAttributeType (columnType?: any) {
+    if (columnType) {
+        switch (columnType.toString()) {
+        case 'int':
+        case 'decimal':
+            return 'N'
+        default:
+            return 'S'
+        }
+    } else {
+        return 'S'
+    }
+}
+
 function findColumnAttributeType (tableName: string, columnName: string): string {
     const column: any = findColumn(tableName, columnName)
-    return column ? column.options.type : 'varchar'
+    return column ? convertToAttributeType(column.options.type) : 'S'
 }
 
 function isMatch (target: Function | string, targetName: string) {
