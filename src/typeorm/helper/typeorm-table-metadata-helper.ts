@@ -61,7 +61,7 @@ export function buildTableDetails (targetName: string): any {
         tableName: `${tableArgs.database}.${tableArgs.schema}.${tableArgs.name}`,
         partitionKey: {
             name: primaryColumn.propertyName,
-            type: primaryColumn.options.type
+            type: convertToAttributeType(primaryColumn.options.type)
         }
     }
 }
