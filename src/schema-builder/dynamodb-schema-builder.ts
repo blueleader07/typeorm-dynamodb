@@ -63,7 +63,7 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
                 BillingMode: 'PAY_PER_REQUEST',
                 TableName: driver.buildTableName(metadata.tableName, metadata.schema, metadata.database),
                 KeySchema: keySchema,
-                GlobalSecondaryIndexes: globalSecondaryIndexes
+                GlobalSecondaryIndexes: globalSecondaryIndexes.length > 0 ? globalSecondaryIndexes : undefined
             }
             try {
                 await db.createTable(schema).promise()
