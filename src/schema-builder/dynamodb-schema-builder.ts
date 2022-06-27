@@ -6,7 +6,8 @@ import { DynamodbDriver } from '../driver/dynamodb-driver'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import {
     buildAttributeDefinitions,
-    buildGlobalSecondaryIndexes
+    buildGlobalSecondaryIndexes,
+    updateGlobalSecondaryIndexes
 } from '../helpers/global-secondary-index-helper'
 
 export const metadataArgsStorage: MetadataArgsStorage = getMetadataArgsStorage()
@@ -55,12 +56,14 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
                     KeyType: 'HASH'
                 })
             }
+            const globalSecondaryIndexes = buildGlobalSecondaryIndexes(metadata) || []
+            const attributeDefinitions = buildAttributeDefinitions(metadata, driver)
             const schema = {
-                AttributeDefinitions: buildAttributeDefinitions(metadata, driver),
+                AttributeDefinitions: attributeDefinitions,
                 BillingMode: 'PAY_PER_REQUEST',
                 TableName: driver.buildTableName(metadata.tableName, metadata.schema, metadata.database),
                 KeySchema: keySchema,
-                GlobalSecondaryIndexes: buildGlobalSecondaryIndexes(metadata)
+                GlobalSecondaryIndexes: globalSecondaryIndexes
             }
             try {
                 await db.createTable(schema).promise()
@@ -68,6 +71,7 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
                 const _error: any = error
                 if (_error && _error.code && _error.code === 'ResourceInUseException') {
                     PlatformTools.logInfo('table already exists: ', metadata.tableName)
+                    await updateGlobalSecondaryIndexes(db, schema.TableName, attributeDefinitions, globalSecondaryIndexes)
                 } else {
                     PlatformTools.logError('error creating table: ', error)
                 }

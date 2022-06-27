@@ -4,7 +4,7 @@ import { datasourceManager, DatasourceManagerOptions } from './managers/datasour
 import { BaseEntity } from './entities/base-entity'
 import { DynamodbRepository } from './repositories/dynamodb-repository'
 import { PagingAndSortingRepository } from './repositories/paging-and-sorting-repository'
-import { tableHelper } from './helpers/table-helper'
+import { tableName } from './helpers/table-helper'
 import { paramHelper } from './helpers/param-helper'
 import { FindOptions, BeginsWith } from './models/find-options'
 import { UpdateOptions } from './models/update-options'
@@ -32,7 +32,7 @@ export {
     GlobalSecondaryIndex,
     PagingAndSortingRepository,
     DynamoPage,
-    tableHelper,
+    tableName,
     paramHelper,
     FindOptions,
     UpdateOptions,

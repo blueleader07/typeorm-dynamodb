@@ -1,11 +1,12 @@
 import expect from 'expect'
-import { datasourceManager } from '../../src/managers/datasource-manager'
+import { datasourceManager } from '../../src'
 import sinon from 'sinon'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
 import { AddOptions } from '../../src/models/add-options'
 import { MockEntityManager } from '../mocks/mock-typeorm'
+// import { environmentUtils } from '@lmig/legal-nodejs-utils'
 
 describe('datasource-manager', () => {
     beforeEach(async () => {
@@ -46,9 +47,10 @@ describe('datasource-manager', () => {
         // })
         //
         // console.log('results', result)
-        //
+
         expect(true).toBe(true)
-    })
+    }, 30000)
+
     it('insert and delete', async (): Promise<any> => {
         sinon.stub(DummyRepository.prototype, 'put').resolves()
         sinon.stub(DummyRepository.prototype, 'deleteOne').resolves()
@@ -67,7 +69,8 @@ describe('datasource-manager', () => {
         await repository.deleteOne({ id: '456' })
         const result2 = await repository.findOne('456')
         expect(result2).toBe(undefined)
-    })
+    }, 30000)
+
     it('insert and delete many', async (): Promise<any> => {
         sinon.stub(DummyRepository.prototype, 'put').resolves()
         sinon.stub(DummyRepository.prototype, 'deleteMany').resolves()
@@ -89,7 +92,8 @@ describe('datasource-manager', () => {
         const result2 = await repository.findOne('456')
         expect(result2).not.toBe(undefined)
         await repository.deleteMany([{ id: '123' }, { id: '456' }])
-    })
+    }, 30000)
+
     it('add', async (): Promise<any> => {
         sinon.stub(DummyRepository.prototype, 'add').resolves()
         const connection = await datasourceManager.open({ entities: [Dummy] })
@@ -103,5 +107,5 @@ describe('datasource-manager', () => {
             executionId: '123'
         }
         await repository.add(options)
-    })
+    }, 30000)
 })
