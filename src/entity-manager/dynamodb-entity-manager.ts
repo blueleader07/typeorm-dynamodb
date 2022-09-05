@@ -68,8 +68,10 @@ export class DynamoDbEntityManager extends EntityManager {
 
     async update<Entity> (entityClassOrName: EntityTarget<Entity>, options: UpdateOptions) {
         const metadata = this.connection.getMetadata(entityClassOrName)
-        // TODO: needs to be smart enough to set the indexedColumns if any of the underlying columns are changed
-        indexedColumns(metadata, entityClassOrName)
+        const changedValues = commonUtils.mixin(options.setValues || {}, options.where)
+        indexedColumns(metadata, changedValues)
+        commonUtils.mixin(options.setValues, changedValues)
+        delete options.setValues.id
         const params = paramHelper.update(metadata.tablePath, options)
         return new DynamodbClient().update(params)
     }

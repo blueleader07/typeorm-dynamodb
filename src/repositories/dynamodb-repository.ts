@@ -3,9 +3,12 @@ import { ScanOptions } from '../models/scan-options'
 import { BatchWriteItem } from '../models/batch-write-item'
 import {
     DeepPartial,
-    EntityMetadata, FindConditions, FindOneOptions,
+    EntityMetadata,
+    FindConditions,
+    FindOneOptions,
     ObjectID,
-    ObjectLiteral, Repository,
+    ObjectLiteral,
+    Repository,
     SelectQueryBuilder
 } from 'typeorm'
 import { DynamodbReadStream } from '../streams/dynamodb-read-stream'
@@ -61,8 +64,7 @@ export class DynamodbRepository<Entity extends ObjectLiteral> extends Repository
 
     add (options: AddOptions) {
         return this.manager.update(this.metadata.target as any, {
-            type: 'ADD',
-            values: options.values,
+            addValues: options.values,
             where: options.where
         })
     }

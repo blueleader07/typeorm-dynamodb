@@ -1,6 +1,8 @@
-import { BaseEntity, Column, Entity, PrimaryColumn } from 'typeorm'
+import { Column, Entity, PrimaryColumn } from 'typeorm'
 import { GlobalSecondaryIndex } from '../../src/decorators/global-secondary-index'
+import { BaseEntity } from '../../src/entities/base-entity'
 
+@GlobalSecondaryIndex({ name: 'idAndAdjustmentStatusIndex', partitionKey: ['id', 'adjustmentStatus'], sortKey: 'created' })
 @GlobalSecondaryIndex({ name: 'adjustmentGroupIdStatusIndex', partitionKey: ['adjustmentGroupId', 'adjustmentStatus'], sortKey: 'lineItemNumber' })
 @Entity({ name: 'dummy_t' })
 export class Dummy extends BaseEntity {
@@ -18,4 +20,7 @@ export class Dummy extends BaseEntity {
 
     @Column({ name: 'lineItemNumber', type: 'int' })
     lineItemNumber: number
+
+    @Column({ name: 'error', type: 'varchar' })
+    error: string
 }

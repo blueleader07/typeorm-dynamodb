@@ -12,6 +12,6 @@ describe('typeorm-entity-hook', () => {
 
         /** then: **/
         expect(dummy.tableDetails).toBeDefined()
-        expect(dummy.indexDetails.length).toBe(1)
+        expect(dummy.indexDetails.length).toBe(2)
     })
 })

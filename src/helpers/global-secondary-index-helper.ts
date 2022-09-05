@@ -14,7 +14,11 @@ const partitionKeyColumns = (columns: ColumnMetadata[], doc: ObjectLiteral) => {
     if (columns.length > 1) {
         const partitionKey = buildPartitionKey(columns)
         doc[partitionKey] = columns.map((column) => {
-            return doc[column.propertyName]
+            const value = doc[column.propertyName]
+            if (!value) {
+                throw new Error(`value not provided for indexed column: ${column.propertyName}`)
+            }
+            return value
         }).join('#')
     }
 }
