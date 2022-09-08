@@ -1,22 +1,22 @@
-import * as typeorm from 'typeorm'
 import sinon from 'sinon'
 import { datasourceManager } from '../../src'
 import { DummyRepository } from '../repositories/dummy-repository'
-import { DynamoDbEntityManager } from '../../src/entity-manager/dynamodb-entity-manager'
-import { DynamodbSchemaBuilder } from '../../src/schema-builder/dynamodb-schema-builder'
+import { DynamoEntityManager, EntityManager, DataSource, DynamoSchemaBuilder } from 'typeorm'
+import * as typeorm from 'typeorm'
+import { Dummy } from '../entities/dummy'
 
-const MockGetCustomRepository = (entityManager: DynamoDbEntityManager) => {
+const MockGetCustomRepository = (entityManager: DynamoEntityManager) => {
     // @ts-ignore
     entityManager.getCustomRepository = (type) => {
         if (type === DummyRepository) {
-            return new DummyRepository()
+            return new DummyRepository(Dummy, entityManager)
         }
         throw Error(`Repository is not mocked: ${type}`)
     }
 }
 
-const MockConnection = (entityManager: typeorm.EntityManager) => {
-    const connection: any = sinon.createStubInstance(typeorm.Connection)
+const MockConnection = (entityManager: EntityManager) => {
+    const connection: any = sinon.createStubInstance(DataSource)
     connection.manager = entityManager
     connection.logger = {
         log: (log: any, message: any) => {
@@ -39,12 +39,12 @@ const MockConnectionManager = (connection: typeorm.Connection) => {
 }
 
 const MockEntityManager = async () => {
-    const entityManager: any = sinon.createStubInstance(DynamoDbEntityManager)
+    const entityManager: any = sinon.createStubInstance(DynamoEntityManager)
     entityManager.transaction = async (fn: any) => {
         return fn(entityManager)
     }
     sinon.stub(typeorm, 'getManager').returns(entityManager)
-    sinon.stub(DynamodbSchemaBuilder.prototype, 'build').resolves()
+    sinon.stub(DynamoSchemaBuilder.prototype, 'build').resolves()
     MockGetCustomRepository(entityManager)
     // @ts-ignore
     MockGetCustomRepository(datasourceManager)

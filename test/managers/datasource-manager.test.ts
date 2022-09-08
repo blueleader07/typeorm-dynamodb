@@ -4,9 +4,8 @@ import sinon from 'sinon'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
-import { AddOptions } from '../../src/models/add-options'
+import { AddOptions } from 'typeorm'
 import { MockEntityManager } from '../mocks/mock-typeorm'
-// import { environmentUtils } from '@lmig/legal-nodejs-utils'
 
 describe('datasource-manager', () => {
     beforeEach(async () => {
@@ -59,27 +58,27 @@ describe('datasource-manager', () => {
         findStub.onSecondCall().resolves(undefined)
         const connection = await datasourceManager.open({ entities: [Dummy] })
         await connection.synchronize()
-        const repository = await datasourceManager.getCustomRepository(DummyRepository)
+        const repository = await datasourceManager.getCustomRepository(DummyRepository, Dummy)
         const dummy = new Dummy()
         dummy.id = '456'
         dummy.name = 'dummy'
         await repository.put(dummy)
-        const result = await repository.findOne('456')
+        const result = await repository.get('456')
         expect(result).not.toBe(undefined)
         await repository.deleteOne({ id: '456' })
-        const result2 = await repository.findOne('456')
+        const result2 = await repository.get('456')
         expect(result2).toBe(undefined)
     }, 30000)
 
     it('insert and delete many', async (): Promise<any> => {
         sinon.stub(DummyRepository.prototype, 'put').resolves()
         sinon.stub(DummyRepository.prototype, 'deleteMany').resolves()
-        const findStub = sinon.stub(DummyRepository.prototype, 'findOne')
-        findStub.onFirstCall().resolves({ id: '123', name: 'dummy1' } as any)
-        findStub.onSecondCall().resolves({ id: '456', name: 'dummy2' } as any)
+        const getStub = sinon.stub(DummyRepository.prototype, 'get')
+        getStub.onFirstCall().resolves({ id: '123', name: 'dummy1' } as any)
+        getStub.onSecondCall().resolves({ id: '456', name: 'dummy2' } as any)
         const connection = await datasourceManager.open({ entities: [Dummy] })
         await connection.synchronize()
-        const repository = await datasourceManager.getCustomRepository(DummyRepository)
+        const repository = await datasourceManager.getCustomRepository(DummyRepository, Dummy)
         const dummy1 = new Dummy()
         dummy1.id = '123'
         dummy1.name = 'dummy1'
@@ -87,9 +86,9 @@ describe('datasource-manager', () => {
         dummy2.id = '456'
         dummy2.name = 'dummy2'
         await repository.put([dummy1, dummy2])
-        const result1 = await repository.findOne('123')
+        const result1 = await repository.get('123')
         expect(result1).not.toBe(undefined)
-        const result2 = await repository.findOne('456')
+        const result2 = await repository.get('456')
         expect(result2).not.toBe(undefined)
         await repository.deleteMany([{ id: '123' }, { id: '456' }])
     }, 30000)
@@ -98,7 +97,7 @@ describe('datasource-manager', () => {
         sinon.stub(DummyRepository.prototype, 'add').resolves()
         const connection = await datasourceManager.open({ entities: [Dummy] })
         await connection.synchronize()
-        const repository = await datasourceManager.getCustomRepository(DummyRepository)
+        const repository = await datasourceManager.getCustomRepository(DummyRepository, Dummy)
         const options = new AddOptions()
         options.values = {
             total: 100

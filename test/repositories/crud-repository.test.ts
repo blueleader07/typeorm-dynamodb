@@ -24,7 +24,7 @@ describe('crud-repository', () => {
             entities: [Dummy],
             synchronize: true
         })
-        const repository = datasourceManager.getCustomRepository(DummyRepository)
+        const repository = datasourceManager.getCustomRepository(DummyRepository, Dummy)
         await repository.updateExpression({
             where: {
                 id: '111-222-333'
@@ -70,7 +70,7 @@ describe('crud-repository', () => {
         await datasourceManager.open({
             entities: [Dummy]
         })
-        const repository = datasourceManager.getCustomRepository(DummyRepository)
+        const repository = datasourceManager.getCustomRepository(DummyRepository, Dummy)
         await repository.updateExpression({
             where: {
                 id: '111-222-333'

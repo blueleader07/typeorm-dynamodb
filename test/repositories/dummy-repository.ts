@@ -1,8 +1,6 @@
-import { EntityRepository } from 'typeorm'
-import { PagingAndSortingRepository } from '../../src'
+import { DynamoPagingAndSortingRepository } from '../../src'
 import { Dummy } from '../entities/dummy'
 
-@EntityRepository(Dummy)
-export class DummyRepository extends PagingAndSortingRepository<Dummy> {
+export class DummyRepository extends DynamoPagingAndSortingRepository<Dummy> {
 
 }
