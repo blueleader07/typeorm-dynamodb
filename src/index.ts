@@ -5,14 +5,14 @@ import { BaseEntity } from './entities/base-entity'
 import {
     DynamoRepository,
     DynamoPagingAndSortingRepository,
-    FindOptions,
+    DynamoFindOptions,
     BeginsWith,
-    UpdateExpressionOptions,
-    BatchWriteItem,
+    DynamoUpdateExpressionOptions,
+    DynamoBatchWriteItem,
     DynamoPage,
     getDocumentClient,
     GlobalSecondaryIndex,
-    paramHelper
+    dynamoParamHelper
 } from 'typeorm'
 import { tableName } from './helpers/table-helper'
 import { User } from './models/user'
@@ -36,9 +36,9 @@ export {
     DynamoPagingAndSortingRepository,
     DynamoPage,
     tableName,
-    paramHelper,
-    FindOptions,
-    UpdateExpressionOptions,
+    dynamoParamHelper,
+    DynamoFindOptions,
+    DynamoUpdateExpressionOptions,
     BeginsWith,
     Page,
     Sort,
@@ -46,7 +46,7 @@ export {
     Pageable,
     pageableRoutes,
     User,
-    BatchWriteItem,
+    DynamoBatchWriteItem,
     YesNoIndicatorTransformer,
     getDocumentClient,
     jsonResponseAdapter,

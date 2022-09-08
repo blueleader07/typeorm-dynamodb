@@ -4,7 +4,7 @@ import sinon from 'sinon'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
-import { AddOptions } from 'typeorm'
+import { DynamoAddOptions } from 'typeorm'
 import { MockEntityManager } from '../mocks/mock-typeorm'
 
 describe('datasource-manager', () => {
@@ -98,7 +98,7 @@ describe('datasource-manager', () => {
         const connection = await datasourceManager.open({ entities: [Dummy] })
         await connection.synchronize()
         const repository = await datasourceManager.getCustomRepository(DummyRepository, Dummy)
-        const options = new AddOptions()
+        const options = new DynamoAddOptions()
         options.values = {
             total: 100
         }
