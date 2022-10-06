@@ -28,7 +28,7 @@ export class UpdateOptions {
         const values: any = {}
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i]
-            const attributeName = key.replace('#', '_')
+            const attributeName = key.replace(/#/g, '_')
             values[`:${attributeName}`] = updateOptionValues[key]
         }
         return values
@@ -43,7 +43,7 @@ export class UpdateOptions {
     static _toUpdateExpression (values: any, type: UpdateType) {
         if (values) {
             const commonSeparatedValues = Object.keys(values).map(key => {
-                const attributeName = key.replace('#', '_')
+                const attributeName = key.replace(/#/g, '_')
                 switch (type) {
                 case UpdateType.ADD:
                     return `#${attributeName} :${attributeName}`
