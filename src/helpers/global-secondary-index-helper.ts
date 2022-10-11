@@ -15,7 +15,7 @@ const partitionKeyColumns = (columns: ColumnMetadata[], doc: ObjectLiteral) => {
         const partitionKey = buildPartitionKey(columns)
         doc[partitionKey] = columns.map((column) => {
             const value = doc[column.propertyName]
-            if (!value) {
+            if (value === undefined) {
                 throw new Error(`value not provided for indexed column: ${column.propertyName}`)
             }
             return value
