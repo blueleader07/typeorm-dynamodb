@@ -46,7 +46,7 @@
     "typescript": "^4.0.3"
   },
   "dependencies": {
-    "@lmig/legal-nodejs-utils": "^1.0.8",
+    "@lmig/legal-nodejs-utils": "^1.0.9",
     "aws-sdk": "^2.797.0",
     "bignumber.js": "^9.0.1",
     "typeorm": "^0.2.45",
@@ -57,6 +57,6 @@
     "aws-sdk": "^2.797.0"
   },
   "engines": {
-    "node": "16 || 14"
+    "node": "14 || 16 || 18"
   }
 }
