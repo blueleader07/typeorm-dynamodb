@@ -71,7 +71,9 @@ export class DynamoDbEntityManager extends EntityManager {
         const changedValues = commonUtils.mixin(options.setValues || {}, options.where)
         indexedColumns(metadata, changedValues)
         commonUtils.mixin(options.setValues, changedValues)
-        delete options.setValues.id
+        if (options.setValues && options.setValues.id !== undefined) {
+            delete options.setValues.id
+        }
         const params = paramHelper.update(metadata.tablePath, options)
         return new DynamodbClient().update(params)
     }
