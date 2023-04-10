@@ -103,11 +103,11 @@ export class DynamoDbEntityManager extends EntityManager {
         const metadata = this.connection.getMetadata(entityClassOrName)
         const params = paramHelper.find(metadata.tablePath, options, metadata.indices)
         let items: any[] = []
-        let results = await dbClient.query(params)
+        let results = commonUtils.isEmpty(options.where) ? await dbClient.scan(params) : await dbClient.query(params)
         items = items.concat(results.Items || [])
         while (results.LastEvaluatedKey) {
             params.ExclusiveStartKey = results.LastEvaluatedKey
-            results = await dbClient.query(params)
+            results = commonUtils.isEmpty(options.where) ? await dbClient.scan(params) : await dbClient.query(params)
             items = items.concat(results.Items || [])
         }
         return items
