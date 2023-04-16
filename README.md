@@ -1,5 +1,7 @@
 # typeorm-dynamodb
 
+This package adds DynamoDB support to TypeORM.  It works by wrapping TypeORM.  Currently it works with version 2 of TypeORM.  Support for version 3 will be coming very soon.
+
 To get started using NPM, you can use the following commands:
 
 ```
