@@ -1,18 +1,12 @@
 # typeorm-dynamodb
 
-This package adds DynamoDB support to TypeORM.  It works by wrapping TypeORM.  Currently it works with version 2 of TypeORM.  Support for version 3 will be coming very soon.
+This package adds DynamoDB support to TypeORM.  It works by wrapping TypeORM.  
+Currently it works with version 2 of TypeORM.  Support for version 3 will be coming very soon.
 
 To get started using NPM, you can use the following commands:
 
 ```
-npm install
-npm test
-```
-
-To get started using Yarn, you can use the following commands:
-```
-yarn
-yarn test
+npm install typeorm-dynamodb
 ```
 
 ## Create an Entity
@@ -139,6 +133,7 @@ app.use(pageableRoutes)
 
 ```
 #### In the above example I am creating the database tables if NODE_ENV=local
+#### Also see how I am passing in the entities.  I've found this helps reduce the lambda cold start.
 
 ### pageableRoutes ExpressJS middleware
 
