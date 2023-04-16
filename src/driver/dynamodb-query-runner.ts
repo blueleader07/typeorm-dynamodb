@@ -685,13 +685,13 @@ export class DynamodbQueryRunner implements QueryRunner {
     };
 
     // added after a recent Typeorm update ... Dynamo is not using afterMigration()
-    afterMigration(): Promise<void> {
-        return Promise.resolve(undefined);
+    afterMigration (): Promise<void> {
+        return Promise.resolve(undefined)
     }
 
     // added after a recent Typeorm update ... Dynamo is not using beforeMigration()
-    beforeMigration(): Promise<void> {
-        return Promise.resolve(undefined);
+    beforeMigration (): Promise<void> {
+        return Promise.resolve(undefined)
     }
 
     // -------------------------------------------------------------------------

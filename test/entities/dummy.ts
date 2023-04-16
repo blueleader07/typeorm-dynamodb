@@ -1,6 +1,5 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm'
-import { GlobalSecondaryIndex } from '../../src/decorators/global-secondary-index'
-import { BaseEntity } from '../../src/entities/base-entity'
+import { BaseEntity, GlobalSecondaryIndex } from '../../src'
 
 @GlobalSecondaryIndex({ name: 'idAndAdjustmentStatusIndex', partitionKey: ['id', 'adjustmentStatus'], sortKey: 'created' })
 @GlobalSecondaryIndex({ name: 'adjustmentGroupIdStatusIndex', partitionKey: ['adjustmentGroupId', 'adjustmentStatus'], sortKey: 'lineItemNumber' })

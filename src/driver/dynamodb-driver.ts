@@ -18,7 +18,7 @@ import { View } from 'typeorm/schema-builder/view/View'
 import { DynamodbSchemaBuilder } from '../schema-builder/dynamodb-schema-builder'
 import { DynamodbQueryRunner } from './dynamodb-query-runner'
 import { ObjectUtils } from 'typeorm/util/ObjectUtils'
-import {UpsertType} from "typeorm/driver/types/UpsertType";
+import { UpsertType } from 'typeorm/driver/types/UpsertType'
 
 /**
  * Organizes communication with Dynamo.
@@ -258,5 +258,5 @@ export class DynamodbDriver implements Driver {
     supportedUpsertType: UpsertType;
 
     // added recently by Typeorm. Dynamo is not using transactionSupport
-    transactionSupport: "simple" | "nested" | "none";
+    transactionSupport: 'simple' | 'nested' | 'none';
 }
