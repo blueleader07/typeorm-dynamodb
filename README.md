@@ -6,7 +6,7 @@ Currently it works with version 2 of TypeORM.  Support for version 3 will be com
 To get started using NPM, you can use the following commands:
 
 ```
-npm install typeorm-dynamodb
+npm install --save typeorm-dynamodb
 ```
 
 ## Create an Entity
