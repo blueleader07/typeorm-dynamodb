@@ -1,8 +1,7 @@
 import expect from 'expect'
 import { DummyRepository } from './dummy-repository'
-import { datasourceManager } from '../../src'
+import { datasourceManager, DynamodbClient } from '../../src'
 import { Dummy } from '../entities/dummy'
-import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import sinon from 'sinon'
 
 describe('crud-repository', () => {
@@ -13,12 +12,7 @@ describe('crud-repository', () => {
         expect(1).toBe(1)
     })
     it('updateExpression', async (): Promise<any> => {
-        const AWS = PlatformTools.load('@aws-sdk/client-dynamodb')
-        const stub = sinon.stub(AWS.DynamoDBClient.prototype, 'send').returns({
-            promise: () => {
-                return Promise.resolve()
-            }
-        })
+        const stub = sinon.stub(DynamodbClient.prototype, 'update').resolves()
 
         await datasourceManager.open({
             entities: [Dummy],
@@ -36,7 +30,7 @@ describe('crud-repository', () => {
             }
         })
 
-        expect(stub.calledWith({
+        const expected: any = {
             TableName: 'dummy_t',
             Key: {
                 id: '111-222-333'
@@ -56,16 +50,13 @@ describe('crud-repository', () => {
                 ':adjustmentGroupId_adjustmentStatus': '444-555-666#failed',
                 ':id_adjustmentStatus': '111-222-333#failed'
             }
-        })).toBe(true)
+        }
+
+        expect(stub.calledWith(expected)).toBe(true)
     })
 
     it('updateExpression 2', async () => {
-        const AWS = PlatformTools.load('@aws-sdk/client-dynamodb')
-        const stub = sinon.stub(AWS.DynamoDBClient.prototype, 'send').returns({
-            promise: () => {
-                return Promise.resolve()
-            }
-        })
+        const stub = sinon.stub(DynamodbClient.prototype, 'update').resolves()
 
         await datasourceManager.open({
             entities: [Dummy]
@@ -84,7 +75,7 @@ describe('crud-repository', () => {
             }
         })
 
-        expect(stub.calledWith({
+        const expected: any = {
             TableName: 'dummy_t',
             Key: {
                 id: '111-222-333'
@@ -104,6 +95,8 @@ describe('crud-repository', () => {
                 ':adjustmentGroupId_adjustmentStatus': '444-555-666#failed',
                 ':id_adjustmentStatus': '111-222-333#failed'
             }
-        })).toBe(true)
+        }
+
+        expect(stub.calledWith(expected)).toBe(true)
     })
 })
