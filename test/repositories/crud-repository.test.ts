@@ -13,8 +13,8 @@ describe('crud-repository', () => {
         expect(1).toBe(1)
     })
     it('updateExpression', async (): Promise<any> => {
-        const AWS = PlatformTools.load('aws-sdk')
-        const stub = sinon.stub(AWS.DynamoDB.DocumentClient.prototype, 'update').returns({
+        const AWS = PlatformTools.load('@aws-sdk/client-dynamodb')
+        const stub = sinon.stub(AWS.DynamoDBClient.prototype, 'send').returns({
             promise: () => {
                 return Promise.resolve()
             }
@@ -60,8 +60,8 @@ describe('crud-repository', () => {
     })
 
     it('updateExpression 2', async () => {
-        const AWS = PlatformTools.load('aws-sdk')
-        const stub = sinon.stub(AWS.DynamoDB.DocumentClient.prototype, 'update').returns({
+        const AWS = PlatformTools.load('@aws-sdk/client-dynamodb')
+        const stub = sinon.stub(AWS.DynamoDBClient.prototype, 'send').returns({
             promise: () => {
                 return Promise.resolve()
             }

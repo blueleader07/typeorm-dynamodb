@@ -11,7 +11,6 @@ import {
 import { DynamodbDriver } from '../driver/dynamodb-driver'
 import { connectionManager } from './connection-manager'
 import { commonUtils } from '../utils/common-utils'
-import { environmentUtils } from '../utils/environment-utils'
 import { DriverFactory } from 'typeorm/driver/DriverFactory'
 import { RepositoryFactory } from 'typeorm/repository/RepositoryFactory'
 import { DynamodbRepository } from '../repositories/dynamodb-repository'
@@ -45,8 +44,10 @@ PlatformTools.load = function (name) {
         /**
              * aws-sdk
              */
-        case 'aws-sdk':
-            return require('aws-sdk')
+        case '@aws-sdk/client-dynamodb':
+            return require('@aws-sdk/client-dynamodb')
+        case '@aws-sdk/lib-dynamodb':
+            return require('@aws-sdk/lib-dynamodb')
             /**
              * mongodb
              */
@@ -149,16 +150,6 @@ export const datasourceManager = {
                 entities: options?.entities
             }
             connection = await connectionManager.create(connectionOptions)
-        }
-
-        const endpoint = environmentUtils.getVariable('DYNAMO_ENDPOINT')
-        if (endpoint) {
-            const region = environmentUtils.getVariable('DYNAMO_REGION') || 'us-east-1'
-            const AWS = PlatformTools.load('aws-sdk')
-            AWS.config.update({
-                region,
-                endpoint
-            })
         }
 
         if (options.synchronize) {

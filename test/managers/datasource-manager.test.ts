@@ -1,55 +1,18 @@
 import expect from 'expect'
 import { datasourceManager } from '../../src'
 import sinon from 'sinon'
-import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
 import { AddOptions } from '../../src/models/add-options'
 import { MockEntityManager } from '../mocks/mock-typeorm'
-// import { environmentUtils } from '@lmig/legal-nodejs-utils'
 
 describe('datasource-manager', () => {
     beforeEach(async () => {
         await MockEntityManager()
-        const AWS = PlatformTools.load('aws-sdk')
-        AWS.config.update({
-            region: 'us-east-1',
-            // @ts-ignore
-            endpoint: 'http://localhost:4566'
-        })
     })
     afterEach(() => {
         sinon.restore()
     })
-    it('create', async (): Promise<any> => {
-        // const connection = await datasourceManager.open({ entities: [Dummy] })
-        // await connection.synchronize(true)
-        // // let's make sure we don't choke when it already exists
-        // await connection.synchronize()
-        //
-        // const repository = await datasourceManager.getCustomRepository(DummyRepository)
-        // const dummy = new Dummy()
-        // dummy.id = '456'
-        // dummy.name = 'dummy'
-        // dummy.adjustmentGroupId = '123'
-        // dummy.adjustmentStatus = 'staged'
-        // dummy.lineItemNumber = 7
-        // await repository.put(dummy)
-        //
-        // environmentUtils.setVariable('DEBUG_DYNAMODB', 'true')
-        //
-        // const result = await repository.find({
-        //     index: 'adjustmentGroupIdStatusIndex',
-        //     where: {
-        //         adjustmentGroupId: '123',
-        //         adjustmentStatus: 'staged'
-        //     }
-        // })
-        //
-        // console.log('results', result)
-
-        expect(true).toBe(true)
-    }, 30000)
 
     it('insert and delete', async (): Promise<any> => {
         sinon.stub(DummyRepository.prototype, 'put').resolves()
@@ -63,6 +26,8 @@ describe('datasource-manager', () => {
         const dummy = new Dummy()
         dummy.id = '456'
         dummy.name = 'dummy'
+        dummy.adjustmentGroupId = '789'
+        dummy.adjustmentStatus = 'PROCESSED'
         await repository.put(dummy)
         const result = await repository.findOne('456')
         expect(result).not.toBe(undefined)
@@ -83,9 +48,13 @@ describe('datasource-manager', () => {
         const dummy1 = new Dummy()
         dummy1.id = '123'
         dummy1.name = 'dummy1'
+        dummy1.adjustmentGroupId = '789'
+        dummy1.adjustmentStatus = 'PROCESSED'
         const dummy2 = new Dummy()
         dummy2.id = '456'
         dummy2.name = 'dummy2'
+        dummy2.adjustmentGroupId = '789'
+        dummy2.adjustmentStatus = 'PROCESSED'
         await repository.put([dummy1, dummy2])
         const result1 = await repository.findOne('123')
         expect(result1).not.toBe(undefined)

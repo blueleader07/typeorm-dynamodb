@@ -27,6 +27,7 @@ import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
 import { commonUtils } from '../utils/common-utils'
 import { DynamodbClient } from '../clients/dynamodb-client'
 import { indexedColumns } from '../helpers/global-secondary-index-helper'
+import { QueryCommand } from '@aws-sdk/lib-dynamodb'
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
@@ -114,7 +115,7 @@ export class DynamoDbEntityManager extends EntityManager {
     }
 
     async scan<Entity> (entityClassOrName: EntityTarget<Entity>, options: ScanOptions) {
-        const dbClient = new DynamodbClient()
+        const dbClient = new DynamodbClient().getClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const params: any = {
             TableName: metadata.tablePath
@@ -128,7 +129,7 @@ export class DynamoDbEntityManager extends EntityManager {
         if (options.exclusiveStartKey) {
             params.ExclusiveStartKey = options.exclusiveStartKey
         }
-        const results: any = await dbClient.scan(params)
+        const results: any = await dbClient.send(params)
         const items = results.Items || []
         items.LastEvaluatedKey = results.LastEvaluatedKey
         return items
@@ -140,7 +141,7 @@ export class DynamoDbEntityManager extends EntityManager {
     async findOne<Entity> (entityClassOrName: EntityTarget<Entity>,
         optionsOrConditions?: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindOneOptions<Entity> | DeepPartial<Entity>,
         maybeOptions?: FindOneOptions<Entity>): Promise<Entity | undefined> {
-        const dbClient = new DynamodbClient()
+        const dbClient = new DynamodbClient().getClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const id = typeof optionsOrConditions === 'string' ? optionsOrConditions : undefined
         const findOneOptionsOrConditions = (id ? maybeOptions : optionsOrConditions) as any
@@ -155,7 +156,7 @@ export class DynamoDbEntityManager extends EntityManager {
             options.limit = 1
         }
         const params = paramHelper.find(metadata.tablePath, options, metadata.indices)
-        const results = await dbClient.query(params)
+        const results = await dbClient.send(new QueryCommand(params))
         const items: any = results.Items || []
         return items.length > 0 ? items[0] : undefined
     }

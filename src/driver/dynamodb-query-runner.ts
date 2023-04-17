@@ -17,7 +17,7 @@ import {
 import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager'
 import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
 import { View } from 'typeorm/schema-builder/view/View'
-import { PlatformTools, ReadStream } from 'typeorm/platform/PlatformTools'
+import { ReadStream } from 'typeorm/platform/PlatformTools'
 import { Broadcaster } from 'typeorm/subscriber/Broadcaster'
 import { batchHelper } from '../helpers/batch-helper'
 import { ReplicationMode } from 'typeorm/driver/types/ReplicationMode'
@@ -127,15 +127,14 @@ export class DynamodbQueryRunner implements QueryRunner {
     broadcaster: Broadcaster;
 
     async clearDatabase (database?: string): Promise<void> {
-        const AWS = PlatformTools.load('aws-sdk')
-        const db = new AWS.DynamoDB({ apiVersion: '2012-08-10' })
-        const tables = await db.listTables()
-        for (let i = 0; i < tables.length; i++) {
-            const table = tables[i]
-            const tableName = table.TableName
-            if (tableName.startsWith(database)) {
-                await db.deleteTable({
-                    TableName: table.TableName
+        const client = new DynamodbClient()
+        const output = await client.listTables({})
+        const tableNames = output.TableNames || []
+        for (let i = 0; i < tableNames.length; i++) {
+            const tableName = tableNames[i]
+            if (tableName.startsWith(database || '')) {
+                await client.deleteTable({
+                    TableName: tableName
                 })
             }
         }
@@ -626,7 +625,7 @@ export class DynamodbQueryRunner implements QueryRunner {
     /**
      * Drops collection.
      */
-    clearTable (tableName: string): Promise<void> {
+    clearTable (tableName: string): Promise<any> {
         const dbClient = new DynamodbClient()
         return dbClient.deleteTable({
             TableName: tableName

@@ -9,6 +9,8 @@ import {
     buildGlobalSecondaryIndexes,
     updateGlobalSecondaryIndexes
 } from '../helpers/global-secondary-index-helper'
+import { DynamodbClient } from '../clients/dynamodb-client'
+import { CreateTableCommand } from '@aws-sdk/client-dynamodb'
 
 export const metadataArgsStorage: MetadataArgsStorage = getMetadataArgsStorage()
 
@@ -42,8 +44,7 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
      * Creates complete schemas for the given entity metadatas.
      */
     async build (): Promise<void> {
-        const AWS = PlatformTools.load('aws-sdk')
-        const db = new AWS.DynamoDB({ apiVersion: '2012-08-10' })
+        const client = new DynamodbClient().getClient()
         const driver: DynamodbDriver = this.connection.driver as DynamodbDriver
         const metadatas = this.connection.entityMetadatas
         for (let i = 0; i < metadatas.length; i += 1) {
@@ -66,12 +67,12 @@ export class DynamodbSchemaBuilder implements SchemaBuilder {
                 GlobalSecondaryIndexes: globalSecondaryIndexes.length > 0 ? globalSecondaryIndexes : undefined
             }
             try {
-                await db.createTable(schema).promise()
+                await client.send(new CreateTableCommand(schema))
             } catch (error) {
                 const _error: any = error
                 if (_error && _error.code && _error.code === 'ResourceInUseException') {
                     PlatformTools.logInfo('table already exists: ', metadata.tableName)
-                    await updateGlobalSecondaryIndexes(db, schema.TableName, attributeDefinitions, globalSecondaryIndexes)
+                    await updateGlobalSecondaryIndexes(client, schema.TableName, attributeDefinitions, globalSecondaryIndexes)
                 } else {
                     PlatformTools.logError('error creating table: ', error)
                 }
