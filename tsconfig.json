@@ -13,7 +13,11 @@
     "lib": [
       "es2020",
       "dom"
-    ]
+    ],
+    "paths": {
+      "typeorm/data-source/BaseDataSourceOptions": ["./src/typeorm/data-source/BaseDataSourceOptions"],
+      "typeorm/driver/DriverFactory": ["./src/typeorm/driver/DriverFactory"]
+    }
   },
   "include": [
     "./src"

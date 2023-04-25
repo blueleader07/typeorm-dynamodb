@@ -1,6 +1,6 @@
 import expect from 'expect'
 import { DummyRepository } from './dummy-repository'
-import { datasourceManager, DynamodbClient } from '../../src'
+import { datasourceManager, DynamoClient } from '../../src'
 import { Dummy } from '../entities/dummy'
 import sinon from 'sinon'
 
@@ -12,13 +12,13 @@ describe('crud-repository', () => {
         expect(1).toBe(1)
     })
     it('updateExpression', async (): Promise<any> => {
-        const stub = sinon.stub(DynamodbClient.prototype, 'update').resolves()
+        const stub = sinon.stub(DynamoClient.prototype, 'update').resolves()
 
         await datasourceManager.open({
             entities: [Dummy],
             synchronize: true
         })
-        const repository = datasourceManager.getCustomRepository(DummyRepository)
+        const repository = datasourceManager.getCustomRepository(DummyRepository, Dummy)
         await repository.updateExpression({
             where: {
                 id: '111-222-333'
@@ -56,12 +56,12 @@ describe('crud-repository', () => {
     })
 
     it('updateExpression 2', async () => {
-        const stub = sinon.stub(DynamodbClient.prototype, 'update').resolves()
+        const stub = sinon.stub(DynamoClient.prototype, 'update').resolves()
 
         await datasourceManager.open({
             entities: [Dummy]
         })
-        const repository = datasourceManager.getCustomRepository(DummyRepository)
+        const repository = datasourceManager.getCustomRepository(DummyRepository, Dummy)
         await repository.updateExpression({
             where: {
                 id: '111-222-333'

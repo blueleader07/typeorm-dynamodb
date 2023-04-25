@@ -2,7 +2,7 @@ import * as typeorm from 'typeorm'
 import sinon from 'sinon'
 import { datasourceManager } from '../../src'
 import { DummyRepository } from '../repositories/dummy-repository'
-import { DynamoDbEntityManager } from '../../src/entity-manager/dynamodb-entity-manager'
+import { DynamoDbEntityManager } from '../../src/driver/dynamo/entity-manager/dynamodb-entity-manager'
 import { DynamodbSchemaBuilder } from '../../src/schema-builder/dynamodb-schema-builder'
 
 const MockGetCustomRepository = (entityManager: DynamoDbEntityManager) => {

@@ -1,38 +1,28 @@
 import { ObjectType } from 'typeorm/common/ObjectType'
 import { EntitySchema } from 'typeorm/entity-schema/EntitySchema'
 import {
-    Connection, EntityManager, EntityMetadata,
+    DataSource, EntityManager,
     EntityTarget, QueryRunner, Repository
 } from 'typeorm'
-import {
-    initializeTransactionalContext,
-    patchTypeORMRepositoryWithBaseRepository
-} from 'typeorm-transactional-cls-hooked'
-import { DynamodbDriver } from '../driver/dynamodb-driver'
-import { connectionManager } from './connection-manager'
+import { DynamoDriver } from '../driver/dynamo/DynamoDriver'
 import { commonUtils } from '../utils/common-utils'
 import { DriverFactory } from 'typeorm/driver/DriverFactory'
-import { RepositoryFactory } from 'typeorm/repository/RepositoryFactory'
-import { DynamodbRepository } from '../repositories/dynamodb-repository'
+import { DynamoRepository } from '../driver/dynamo/repository/DynamoRepository'
 import { EntityManagerFactory } from 'typeorm/entity-manager/EntityManagerFactory'
-import { DynamoDbEntityManager } from '../entity-manager/dynamodb-entity-manager'
+import { DynamoEntityManager } from '../driver/dynamo/entity-manager/DynamoEntityManager'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import path from 'path'
+import { ObjectLiteral } from 'typeorm/common/ObjectLiteral'
 
-DriverFactory.prototype.create = (connection: Connection) => {
-    return new DynamodbDriver(connection)
+DriverFactory.prototype.create = (connection: DataSource) => {
+    return new DynamoDriver(connection)
 }
-RepositoryFactory.prototype.create = (manager: EntityManager, metadata: EntityMetadata, queryRunner?: QueryRunner): Repository<any> => {
-    const repository: any = new DynamodbRepository()
-    Object.assign(repository, {
-        manager: manager,
-        metadata: metadata,
-        queryRunner: queryRunner
-    })
+EntityManager.prototype.getRepository = <Entity extends ObjectLiteral>(target: EntityTarget<Entity>): Repository<Entity> => {
+    const repository: any = new DynamoRepository(target, EntityManager.prototype, EntityManager.prototype.queryRunner)
     return repository
 }
-EntityManagerFactory.prototype.create = (connection: Connection, queryRunner?: QueryRunner): EntityManager => {
-    return new DynamoDbEntityManager(connection)
+EntityManagerFactory.prototype.create = (connection: DataSource, queryRunner?: QueryRunner): EntityManager => {
+    return new DynamoEntityManager(connection)
 }
 PlatformTools.load = function (name) {
     // if name is not absolute or relative, then try to load package from the node_modules of the directory we are currently in
@@ -126,9 +116,6 @@ PlatformTools.load = function (name) {
     throw new TypeError('Invalid Package for PlatformTools.load: ' + name)
 }
 
-initializeTransactionalContext()
-patchTypeORMRepositoryWithBaseRepository()
-
 let connection: any = null
 
 export class DatasourceManagerOptions {
@@ -149,7 +136,7 @@ export const datasourceManager = {
                 type: 'dynamodb',
                 entities: options?.entities
             }
-            connection = await connectionManager.create(connectionOptions)
+            connection = await new DataSource(connectionOptions).initialize()
         }
 
         if (options.synchronize) {
@@ -160,29 +147,19 @@ export const datasourceManager = {
         return connection
     },
 
-    async getConnection (name?: string) {
-        return connectionManager.get(name)
+    getConnection (name?: string) {
+        // maintaining a list of connections was deprecated by typeorm
+        // we could maintain a map of all the names in the future
+        // to recreate the original typeorm logic
+        return connection
     },
 
-    getCustomRepository<T> (customRepository: ObjectType<T>, name?: string): T {
-        const connection = connectionManager.get(name)
-        return connection.getCustomRepository(customRepository)
-        // const entityRepositoryMetadataArgs = getMetadataArgsStorage().entityRepositories.find(repository => {
-        //     return repository.target === (customRepository instanceof Function ? customRepository : (customRepository as any).constructor)
-        // })
-        // if (!entityRepositoryMetadataArgs) {
-        //     throw new CustomRepositoryNotFoundError(customRepository)
-        // }
-        // const entityMetadata = entityRepositoryMetadataArgs.entity ? connection.getMetadata(entityRepositoryMetadataArgs.entity) : undefined
-        // const entityRepositoryInstance = new (entityRepositoryMetadataArgs.target as any)(this, entityMetadata);
-        // (entityRepositoryInstance as any).manager = this;
-        // (entityRepositoryInstance as any).metadata = entityMetadata
-        // return entityRepositoryInstance
+    getCustomRepository<T, Entity> (customRepository: { new(a: any, b: any): T ;}, customEntity: ObjectType<Entity>, name?: string): T {
+        return new customRepository(customEntity, connection.createEntityManager())
     },
 
     getRepository<Entity> (target: EntityTarget<Entity>, name?: string): Repository<Entity> {
-        const connection = connectionManager.get(name)
-        return connection.getRepository(target)
+        return this.getConnection(name).getRepository(target)
     },
 
     async close () {
