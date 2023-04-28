@@ -1,5 +1,5 @@
 import expect from 'expect'
-import { parseAnnotations } from '../../src/parsers/annotation-parser'
+import { parseAnnotations } from '../../src/driver/dynamo/parsers/annotation-parser'
 import { readdirSync, readFileSync } from 'fs'
 
 // TODO: Bob: this annotation-parser should be moved to a new library ... part of typeorm-cdk perhaps

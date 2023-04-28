@@ -1,7 +1,7 @@
 # typeorm-dynamodb
 
-This package adds DynamoDB support to TypeORM.  It works by wrapping TypeORM.  
-Currently it works with version 2 of TypeORM.  Support for version 3 will be coming very soon.
+This package adds DynamoDB support to TypeORM.  It works by wrapping TypeORM.
+Supports Typeorm version 0.3+
 
 To get started using NPM, you can use the following commands:
 
@@ -40,7 +40,6 @@ import { EntityRepository } from 'typeorm'
 import { PagingAndSortingRepository } from 'typeorm-repository'
 import { User } from '../entities/user'
 
-@EntityRepository(User)
 export class UserRepository extends PagingAndSortingRepository<User> {
 
 }
@@ -56,23 +55,23 @@ import { datasourceManager } from 'typeorm-dynamodb'
 export class UserService {
 
     async get (id: string) {
-        const repository = datasourceManager.getCustomRepository(UserRepository)
+        const repository = datasourceManager.getCustomRepository(UserRepository, User)
         return repository.get(id)
     }
 
     async put (user: User) {
-        const repository = datasourceManager.getCustomRepository(UserRepository)
+        const repository = datasourceManager.getCustomRepository(UserRepository, User)
         await repository.put(user)
     }
 
     async delete (id: string) {
-        const repository = datasourceManager.getCustomRepository(UserRepository)
+        const repository = datasourceManager.getCustomRepository(UserRepository, User)
         await repository.delete({ id })
     }
 
     async findPage (criteria: any, pageable: Pageable) {
         if (criteria.age) {
-            const repository = datasourceManager.getCustomRepository(UserRepository)
+            const repository = datasourceManager.getCustomRepository(UserRepository, User)
             return repository.findPage({
                 index: 'ageIndex',
                 where: {

@@ -12,7 +12,7 @@ import {
     QueryCommand,
     DeleteTableCommand, ListTablesCommand, ListTablesCommandInput, CreateTableCommandInput, CreateTableCommand
 } from '@aws-sdk/client-dynamodb'
-import { environmentUtils } from '../../utils/environment-utils'
+import { environmentUtils } from './utils/environment-utils'
 import {
     BatchGetCommand,
     BatchWriteCommand,

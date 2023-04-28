@@ -4,12 +4,12 @@ import {
     DataSource, EntityManager,
     EntityTarget, QueryRunner, Repository
 } from 'typeorm'
-import { DynamoDriver } from '../driver/dynamo/DynamoDriver'
+import { DynamoDriver } from '../DynamoDriver'
 import { commonUtils } from '../utils/common-utils'
 import { DriverFactory } from 'typeorm/driver/DriverFactory'
-import { DynamoRepository } from '../driver/dynamo/repository/DynamoRepository'
+import { DynamoRepository } from '../repository/DynamoRepository'
 import { EntityManagerFactory } from 'typeorm/entity-manager/EntityManagerFactory'
-import { DynamoEntityManager } from '../driver/dynamo/entity-manager/DynamoEntityManager'
+import { DynamoEntityManager } from '../entity-manager/DynamoEntityManager'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import path from 'path'
 import { ObjectLiteral } from 'typeorm/common/ObjectLiteral'
