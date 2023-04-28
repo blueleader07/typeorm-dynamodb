@@ -1,6 +1,9 @@
+import { AddOptions } from './driver/dynamo/models/AddOptions'
 import { datasourceInitializer } from './driver/dynamo/middleware/datasource-initializer'
 import { datasourceManager, DatasourceManagerOptions } from './driver/dynamo/managers/datasource-manager'
 import { DynamoRepository } from './driver/dynamo/repository/DynamoRepository'
+import { DynamoEntityManager } from './driver/dynamo/entity-manager/DynamoEntityManager'
+import { DynamoSchemaBuilder } from './driver/dynamo/DynamoSchemaBuilder'
 import { PagingAndSortingRepository } from './driver/dynamo/repository/PagingAndSortingRepository'
 import { paramHelper } from './driver/dynamo/helpers/param-helper'
 import { FindOptions, BeginsWith } from './driver/dynamo/models/FindOptions'
@@ -18,9 +21,12 @@ import { getDocumentClient, DynamoClient } from './driver/dynamo/DynamoClient'
 import { GlobalSecondaryIndex } from './driver/dynamo/decorators/global-secondary-index'
 
 export {
+    AddOptions,
     datasourceInitializer,
     datasourceManager,
     DatasourceManagerOptions,
+    DynamoEntityManager,
+    DynamoSchemaBuilder,
     BigNumberTransformer,
     DynamoRepository,
     GlobalSecondaryIndex,

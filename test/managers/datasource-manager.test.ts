@@ -1,9 +1,8 @@
 import expect from 'expect'
-import { datasourceManager } from '../../src'
+import { datasourceManager, AddOptions } from '../../src'
 import sinon from 'sinon'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
-import { AddOptions } from '../../src/driver/dynamo/models/AddOptions'
 import { MockEntityManager } from '../mocks/mock-typeorm'
 
 describe('datasource-manager', () => {

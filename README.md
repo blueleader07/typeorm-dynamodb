@@ -9,6 +9,50 @@ To get started using NPM, you can use the following commands:
 npm install --save typeorm-dynamodb
 ```
 
+## Initializing the datasource
+In dynamodb we don't really "open" a connection.  However, we will need to read in all the entities so TypeORM knows about them.
+
+There are two easy ways to initialized TypeORM.
+
+### datasourceManager.open
+```typescript
+import { datasourceManager } from 'typeorm-dynamodb'
+import { User } from '../entities/user.ts'
+
+const run = async () => {
+    await datasourceManager.open({
+        entities: [User],
+        synchronize: false // true will attempt to create tables
+    })
+    // now you can read / write to dynamodb
+}
+
+```
+
+### datasourceInitializer ExpressJS middleware
+
+```typescript
+import express from 'express'
+import { datasourceInitializer, environmentUtils, pageableRoutes } from 'typeorm-dynamodb'
+import { User } from '../entities/user'
+
+const app = express()
+app.use(datasourceInitializer({
+    entities: [User],
+    synchronize: environmentUtils.isLocal()
+}))
+app.use(pageableRoutes)
+// ... continue with Express configuration
+
+```
+#### In the above example I am creating the database tables if NODE_ENV=local
+#### Also see how I am passing in the entities.  I've found this helps reduce the lambda cold start.
+
+### pageableRoutes ExpressJS middleware
+
+This will automatically parse query string parameters "page", "size" and "sort" and populate a req.pageable object.
+You can pass pageable straight through to your findPage repository method to pull back a limited result set.
+
 ## Create an Entity
 
 ```typescript
@@ -33,7 +77,7 @@ export class User extends BaseEntity {
 
 ```
 
-## Create a Repository
+## Create a Repository (old Typeorm 0.2 way)
 
 ```typescript
 import { EntityRepository } from 'typeorm'
@@ -43,6 +87,15 @@ import { User } from '../entities/user'
 export class UserRepository extends PagingAndSortingRepository<User> {
 
 }
+```
+
+## Create a Repository (new Typeorm 0.3 way)
+
+```typescript
+import { datasourceManager } from './datasource-manager'
+import { DataSource } from 'typeorm/data-source/DataSource'
+
+const repository = datasourceManager.getRepository(User)
 ```
 
 ## CRUD Service Example
@@ -95,46 +148,3 @@ When new records are written to the database a column will be populated automati
 For example, the sort column ```["lastname","firstname"]``` will automatically populate a column "lastname#firstname" when the record is 
 saved to the database.  Magic!
 
-## Initializing the datasource
-In dynamodb we don't really "open" a connection.  However, we will need to read in all the entities so TypeORM knows about them.
-
-There are two easy ways to initialized TypeORM.
-
-### datasourceManager.open
-```typescript
-import { datasourceManager } from 'typeorm-dynamodb'
-import { User } from '../entities/user.ts'
-
-const run = async () => {
-    await datasourceManager.open({
-        entities: [User],
-        synchronize: false // true will attempt to create tables
-    })
-    // now you can read / write to dynamodb
-}
-
-```
-
-### datasourceInitializer ExpressJS middleware
-
-```typescript
-import express from 'express'
-import { datasourceInitializer, environmentUtils, pageableRoutes } from 'typeorm-dynamodb'
-import { User } from '../entities/user'
-
-const app = express()
-app.use(datasourceInitializer({
-    entities: [User],
-    synchronize: environmentUtils.isLocal()
-}))
-app.use(pageableRoutes)
-// ... continue with Express configuration
-
-```
-#### In the above example I am creating the database tables if NODE_ENV=local
-#### Also see how I am passing in the entities.  I've found this helps reduce the lambda cold start.
-
-### pageableRoutes ExpressJS middleware
-
-This will automatically parse query string parameters "page", "size" and "sort" and populate a req.pageable object.
-You can pass pageable straight through to your findPage repository method to pull back a limited result set.

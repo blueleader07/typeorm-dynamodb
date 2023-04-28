@@ -7,22 +7,26 @@ import {
 import { DynamoDriver } from '../DynamoDriver'
 import { commonUtils } from '../utils/common-utils'
 import { DriverFactory } from 'typeorm/driver/DriverFactory'
-import { DynamoRepository } from '../repository/DynamoRepository'
 import { EntityManagerFactory } from 'typeorm/entity-manager/EntityManagerFactory'
 import { DynamoEntityManager } from '../entity-manager/DynamoEntityManager'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import path from 'path'
 import { ObjectLiteral } from 'typeorm/common/ObjectLiteral'
+import { PagingAndSortingRepository } from '../repository/PagingAndSortingRepository'
+
+let connection: any = null
+let entityManager: any = null
 
 DriverFactory.prototype.create = (connection: DataSource) => {
     return new DynamoDriver(connection)
 }
-EntityManager.prototype.getRepository = <Entity extends ObjectLiteral>(target: EntityTarget<Entity>): Repository<Entity> => {
-    const repository: any = new DynamoRepository(target, EntityManager.prototype, EntityManager.prototype.queryRunner)
+EntityManager.prototype.getRepository = <Entity extends ObjectLiteral>(target: EntityTarget<Entity>): PagingAndSortingRepository<Entity> => {
+    const repository: any = new PagingAndSortingRepository(target, entityManager, EntityManager.prototype.queryRunner)
     return repository
 }
 EntityManagerFactory.prototype.create = (connection: DataSource, queryRunner?: QueryRunner): EntityManager => {
-    return new DynamoEntityManager(connection)
+    entityManager = new DynamoEntityManager(connection)
+    return entityManager
 }
 PlatformTools.load = function (name) {
     // if name is not absolute or relative, then try to load package from the node_modules of the directory we are currently in
@@ -115,8 +119,6 @@ PlatformTools.load = function (name) {
     // an error.
     throw new TypeError('Invalid Package for PlatformTools.load: ' + name)
 }
-
-let connection: any = null
 
 export class DatasourceManagerOptions {
     entities?: ((Function | string | EntitySchema))[];
