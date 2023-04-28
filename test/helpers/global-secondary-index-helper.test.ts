@@ -3,7 +3,7 @@ import { Dummy } from '../entities/dummy'
 import {
     buildGlobalSecondaryIndexes,
     indexedColumns
-} from '../../src/helpers/global-secondary-index-helper'
+} from '../../src/driver/dynamo/helpers/DynamoGlobalSecondaryIndexHelper'
 
 describe('global-secondary-index-helper', () => {
     it('indexedColumns compound partitionKey', async (): Promise<any> => {

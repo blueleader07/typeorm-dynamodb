@@ -68,7 +68,7 @@ export class DynamoRepository<
      * Finds first entity by a given find options.
      * If entity was not found in the database - returns null.
      */
-    async findOne (options: FindOneOptions<Entity>): Promise<Entity | null> {
+    async findOne (options: FindOneOptions<Entity> | string): Promise<Entity | null> {
         return this.manager.findOne(this.metadata.target, options)
     }
 

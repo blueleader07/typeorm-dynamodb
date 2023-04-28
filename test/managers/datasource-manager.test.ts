@@ -3,7 +3,7 @@ import { datasourceManager } from '../../src'
 import sinon from 'sinon'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
-import { AddOptions } from '../../src/models/add-options'
+import { AddOptions } from '../../src/driver/dynamo/models/AddOptions'
 import { MockEntityManager } from '../mocks/mock-typeorm'
 
 describe('datasource-manager', () => {
@@ -22,7 +22,7 @@ describe('datasource-manager', () => {
         findStub.onSecondCall().resolves(undefined)
         const connection = await datasourceManager.open({ entities: [Dummy] })
         await connection.synchronize()
-        const repository = await datasourceManager.getCustomRepository(DummyRepository)
+        const repository = await datasourceManager.getCustomRepository(DummyRepository, Dummy)
         const dummy = new Dummy()
         dummy.id = '456'
         dummy.name = 'dummy'
@@ -44,7 +44,7 @@ describe('datasource-manager', () => {
         findStub.onSecondCall().resolves({ id: '456', name: 'dummy2' } as any)
         const connection = await datasourceManager.open({ entities: [Dummy] })
         await connection.synchronize()
-        const repository = await datasourceManager.getCustomRepository(DummyRepository)
+        const repository = await datasourceManager.getCustomRepository(DummyRepository, Dummy)
         const dummy1 = new Dummy()
         dummy1.id = '123'
         dummy1.name = 'dummy1'
@@ -67,7 +67,7 @@ describe('datasource-manager', () => {
         sinon.stub(DummyRepository.prototype, 'add').resolves()
         const connection = await datasourceManager.open({ entities: [Dummy] })
         await connection.synchronize()
-        const repository = await datasourceManager.getCustomRepository(DummyRepository)
+        const repository = await datasourceManager.getCustomRepository(DummyRepository, Dummy)
         const options = new AddOptions()
         options.values = {
             total: 100

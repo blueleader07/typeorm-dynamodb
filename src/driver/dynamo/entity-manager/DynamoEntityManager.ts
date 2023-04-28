@@ -164,7 +164,7 @@ export class DynamoEntityManager extends EntityManager {
      */
     async findOne<Entity> (
         entityClass: EntityTarget<Entity>,
-        options: FindOneOptions<Entity>
+        options: FindOneOptions<Entity> | string
     ): Promise<Entity | null> {
         const dbClient = getDocumentClient()
         const metadata = this.connection.getMetadata(entityClass)

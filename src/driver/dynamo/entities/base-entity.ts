@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, UpdateDateColumn } from 'typeorm'
-import { YesNoIndicatorTransformer } from '../../../transformers/yes-no-indicator-transformer'
+import { YesNoIndicatorTransformer } from '../transformers/yes-no-indicator-transformer'
 
 export class BaseEntity {
     @Column({ name: 'deleted', type: 'varchar2', transformer: new YesNoIndicatorTransformer() })

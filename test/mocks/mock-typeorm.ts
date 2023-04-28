@@ -2,16 +2,16 @@ import * as typeorm from 'typeorm'
 import sinon from 'sinon'
 import { datasourceManager } from '../../src'
 import { DummyRepository } from '../repositories/dummy-repository'
-import { DynamoDbEntityManager } from '../../src/driver/dynamo/entity-manager/dynamodb-entity-manager'
-import { DynamodbSchemaBuilder } from '../../src/schema-builder/dynamodb-schema-builder'
+import { DynamoEntityManager } from '../../src/driver/dynamo/entity-manager/DynamoEntityManager'
+import { DynamoSchemaBuilder } from '../../src/driver/dynamo/DynamoSchemaBuilder'
 
-const MockGetCustomRepository = (entityManager: DynamoDbEntityManager) => {
+const MockGetCustomRepository = (entityManager: DynamoEntityManager) => {
     // @ts-ignore
-    entityManager.getCustomRepository = (type) => {
-        if (type === DummyRepository) {
-            return new DummyRepository()
+    entityManager.getCustomRepository = (repositoryClass: any, entityClass: any) => {
+        if (repositoryClass === DummyRepository) {
+            return new DummyRepository(entityClass, entityManager)
         }
-        throw Error(`Repository is not mocked: ${type}`)
+        throw Error(`Repository is not mocked: ${repositoryClass}`)
     }
 }
 
@@ -39,16 +39,16 @@ const MockConnectionManager = (connection: typeorm.Connection) => {
 }
 
 const MockEntityManager = async () => {
-    const entityManager: any = sinon.createStubInstance(DynamoDbEntityManager)
+    const entityManager: any = sinon.createStubInstance(DynamoEntityManager)
     entityManager.transaction = async (fn: any) => {
         return fn(entityManager)
     }
     sinon.stub(typeorm, 'getManager').returns(entityManager)
-    sinon.stub(DynamodbSchemaBuilder.prototype, 'build').resolves()
+    sinon.stub(DynamoSchemaBuilder.prototype, 'build').resolves()
+    const connection = MockConnection(entityManager)
     MockGetCustomRepository(entityManager)
     // @ts-ignore
     MockGetCustomRepository(datasourceManager)
-    const connection = MockConnection(entityManager)
     MockConnectionManager(connection)
 }
 
