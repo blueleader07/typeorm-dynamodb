@@ -13,10 +13,10 @@ export const isEmpty = (object: any) => {
         return object === null || object.length === 0
     }
     return (
-        typeof object === "undefined" ||
+        typeof object === 'undefined' ||
         object === null ||
-        object === "" ||
-        JSON.stringify(object) === "{}"
+        object === '' ||
+        JSON.stringify(object) === '{}'
     )
 }
 
@@ -25,9 +25,9 @@ export const isNotEmpty = (object: any) => {
         return object !== null && object.length > 0
     }
     return (
-        typeof object !== "undefined" &&
+        typeof object !== 'undefined' &&
         object !== null &&
-        object !== "" &&
-        JSON.stringify(object) !== "{}"
+        object !== '' &&
+        JSON.stringify(object) !== '{}'
     )
 }
