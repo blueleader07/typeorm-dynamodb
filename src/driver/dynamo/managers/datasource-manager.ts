@@ -2,7 +2,7 @@ import { ObjectType } from 'typeorm/common/ObjectType'
 import { EntitySchema } from 'typeorm/entity-schema/EntitySchema'
 import {
     DataSource, EntityManager,
-    EntityTarget, QueryRunner, Repository
+    EntityTarget, QueryRunner
 } from 'typeorm'
 import { DynamoDriver } from '../DynamoDriver'
 import { commonUtils } from '../utils/common-utils'
@@ -160,7 +160,7 @@ export const datasourceManager = {
         return new customRepository(customEntity, connection.createEntityManager())
     },
 
-    getRepository<Entity> (target: EntityTarget<Entity>, name?: string): Repository<Entity> {
+    getRepository<Entity> (target: EntityTarget<Entity>, name?: string): PagingAndSortingRepository<Entity> {
         return this.getConnection(name).getRepository(target)
     },
 

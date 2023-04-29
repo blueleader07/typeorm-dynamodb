@@ -101,30 +101,29 @@ const repository = datasourceManager.getRepository(User)
 ## CRUD Service Example
 
 ```typescript
-import { UserRepository } from '../repositories/user-repository'
 import { User } from '../entities/user'
 import { datasourceManager } from 'typeorm-dynamodb'
 
 export class UserService {
 
     async get (id: string) {
-        const repository = datasourceManager.getCustomRepository(UserRepository, User)
+        const repository = datasourceManager.getRepository(User)
         return repository.get(id)
     }
 
     async put (user: User) {
-        const repository = datasourceManager.getCustomRepository(UserRepository, User)
+        const repository = datasourceManager.getRepository(User)
         await repository.put(user)
     }
 
     async delete (id: string) {
-        const repository = datasourceManager.getCustomRepository(UserRepository, User)
+        const repository = datasourceManager.getRepository(User)
         await repository.delete({ id })
     }
 
     async findPage (criteria: any, pageable: Pageable) {
         if (criteria.age) {
-            const repository = datasourceManager.getCustomRepository(UserRepository, User)
+            const repository = datasourceManager.getCustomRepository(User)
             return repository.findPage({
                 index: 'ageIndex',
                 where: {
