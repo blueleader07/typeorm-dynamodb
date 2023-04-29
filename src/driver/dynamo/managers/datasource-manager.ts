@@ -130,41 +130,61 @@ const DEFAULT_OPTIONS: DatasourceManagerOptions = {
     synchronize: false
 }
 
+export const open = async (options: DatasourceManagerOptions) => {
+    options = commonUtils.mixin({ ...DEFAULT_OPTIONS }, options)
+    if (!connection) {
+        const connectionOptions: any = {
+            type: 'dynamodb',
+            entities: options?.entities
+        }
+        connection = await new DataSource(connectionOptions).initialize()
+    }
+
+    if (options.synchronize) {
+        console.log('synchronizing database ... ')
+        await connection.synchronize()
+    }
+
+    return connection
+}
+
+export const getConnection = (name?: string) => {
+    // maintaining a list of connections was deprecated by typeorm
+    // we could maintain a map of all the names in the future
+    // to recreate the original typeorm logic
+    return connection
+}
+
+export const getCustomRepository = <T, Entity> (customRepository: { new(a: any, b: any): T ;}, customEntity: ObjectType<Entity>, name?: string): T => {
+    return new customRepository(customEntity, connection.createEntityManager())
+}
+
+export const getRepository = <Entity> (target: EntityTarget<Entity>, name?: string): PagingAndSortingRepository<Entity> => {
+    return getConnection(name).getRepository(target)
+}
+
+export const close = () => {
+    // does nothing in dynamodb.  Adding for compatability with other libraries.
+}
+
 export const datasourceManager = {
     async open (options: DatasourceManagerOptions) {
-        options = commonUtils.mixin({ ...DEFAULT_OPTIONS }, options)
-        if (!connection) {
-            const connectionOptions: any = {
-                type: 'dynamodb',
-                entities: options?.entities
-            }
-            connection = await new DataSource(connectionOptions).initialize()
-        }
-
-        if (options.synchronize) {
-            console.log('synchronizing database ... ')
-            await connection.synchronize()
-        }
-
-        return connection
+        return open(options)
     },
 
     getConnection (name?: string) {
-        // maintaining a list of connections was deprecated by typeorm
-        // we could maintain a map of all the names in the future
-        // to recreate the original typeorm logic
-        return connection
+        return getConnection(name)
     },
 
     getCustomRepository<T, Entity> (customRepository: { new(a: any, b: any): T ;}, customEntity: ObjectType<Entity>, name?: string): T {
-        return new customRepository(customEntity, connection.createEntityManager())
+        return getCustomRepository(customRepository, customEntity, name)
     },
 
     getRepository<Entity> (target: EntityTarget<Entity>, name?: string): PagingAndSortingRepository<Entity> {
-        return this.getConnection(name).getRepository(target)
+        return getRepository(target, name)
     },
 
     async close () {
-        // does nothing in dynamodb.  Adding for compatability with other legal-nodejs-{database} libraries.
+        close()
     }
 }

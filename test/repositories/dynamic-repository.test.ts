@@ -1,5 +1,5 @@
 import expect from 'expect'
-import { datasourceManager, DynamoClient } from '../../src'
+import { open, getRepository, DynamoClient } from '../../src'
 import { Dummy } from '../entities/dummy'
 import sinon from 'sinon'
 
@@ -14,12 +14,11 @@ describe('dynamic-repository', () => {
         const createTableStub = sinon.stub(DynamoClient.prototype, 'createTable').resolves()
         const updateStub = sinon.stub(DynamoClient.prototype, 'update').resolves()
 
-        const datasource = await datasourceManager.open({
+        await open({
             entities: [Dummy],
             synchronize: true
         })
-        const repository = datasource.getRepository(Dummy)
-        await repository.updateExpression({
+        await getRepository(Dummy).updateExpression({
             where: {
                 id: '111-222-333'
             },
@@ -59,11 +58,10 @@ describe('dynamic-repository', () => {
     it('updateExpression 2', async () => {
         const updateStub = sinon.stub(DynamoClient.prototype, 'update').resolves()
 
-        const datasource = await datasourceManager.open({
+        await open({
             entities: [Dummy]
         })
-        const repository = datasource.getRepository(Dummy)
-        await repository.updateExpression({
+        await getRepository(Dummy).updateExpression({
             where: {
                 id: '111-222-333'
             },

@@ -92,38 +92,35 @@ export class UserRepository extends PagingAndSortingRepository<User> {
 ## Create a Repository (new Typeorm 0.3 way)
 
 ```typescript
-import { datasourceManager } from './datasource-manager'
+import { getRepository } from './datasource-manager'
 import { DataSource } from 'typeorm/data-source/DataSource'
 
-const repository = datasourceManager.getRepository(User)
+const repository = getRepository(User)
 ```
 
 ## CRUD Service Example
 
 ```typescript
 import { User } from '../entities/user'
-import { datasourceManager } from 'typeorm-dynamodb'
+import { getRepository } from 'typeorm-dynamodb'
 
 export class UserService {
 
     async get (id: string) {
-        const repository = datasourceManager.getRepository(User)
-        return repository.get(id)
+        return getRepository(User).get(id)
     }
 
     async put (user: User) {
-        const repository = datasourceManager.getRepository(User)
-        await repository.put(user)
+        await getRepository(User).put(user)
     }
 
     async delete (id: string) {
-        const repository = datasourceManager.getRepository(User)
-        await repository.delete({ id })
+        await getRepository(User).delete({ id })
     }
 
     async findPage (criteria: any, pageable: Pageable) {
+        const repository = getRepository(User)
         if (criteria.age) {
-            const repository = datasourceManager.getCustomRepository(User)
             return repository.findPage({
                 index: 'ageIndex',
                 where: {
