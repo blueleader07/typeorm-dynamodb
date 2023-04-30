@@ -152,6 +152,9 @@ export const getConnection = (name?: string) => {
     // maintaining a list of connections was deprecated by typeorm
     // we could maintain a map of all the names in the future
     // to recreate the original typeorm logic
+    if (!connection) {
+        throw new Error('connection is undefined.  Did you forget to call open()?')
+    }
     return connection
 }
 

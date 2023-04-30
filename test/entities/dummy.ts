@@ -22,4 +22,7 @@ export class Dummy {
 
     @Column({ name: 'error', type: 'varchar' })
     error: string
+
+    @Column({ name: 'created', type: 'varchar' })
+    created: string
 }

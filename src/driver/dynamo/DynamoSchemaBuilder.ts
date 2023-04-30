@@ -69,7 +69,7 @@ export class DynamoSchemaBuilder implements SchemaBuilder {
                 await client.createTable(schema)
             } catch (error) {
                 const _error: any = error
-                if (_error && _error.code && _error.code === 'ResourceInUseException') {
+                if (_error && _error.name && _error.name === 'ResourceInUseException') {
                     PlatformTools.logInfo('table already exists: ', metadata.tableName)
                     await updateGlobalSecondaryIndexes(client, schema.TableName, attributeDefinitions, globalSecondaryIndexes)
                 } else {

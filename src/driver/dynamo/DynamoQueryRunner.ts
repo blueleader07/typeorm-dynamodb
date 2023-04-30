@@ -1,18 +1,20 @@
-import { QueryRunner } from 'typeorm/query-runner/QueryRunner'
-import { ObjectLiteral } from 'typeorm/common/ObjectLiteral'
-import { TableColumn } from 'typeorm/schema-builder/table/TableColumn'
-import { Table } from 'typeorm/schema-builder/table/Table'
-import { TableForeignKey } from 'typeorm/schema-builder/table/TableForeignKey'
-import { TableIndex } from 'typeorm/schema-builder/table/TableIndex'
 import { View } from 'typeorm/schema-builder/view/View'
 import { PlatformTools, ReadStream } from 'typeorm/platform/PlatformTools'
 import { SqlInMemory } from 'typeorm/driver/SqlInMemory'
-import { TableUnique } from 'typeorm/schema-builder/table/TableUnique'
 import { Broadcaster } from 'typeorm/subscriber/Broadcaster'
-import { TableCheck } from 'typeorm/schema-builder/table/TableCheck'
-import { TableExclusion } from 'typeorm/schema-builder/table/TableExclusion'
-import { TypeORMError } from 'typeorm/error'
-import { ReplicationMode } from 'typeorm/driver/types/ReplicationMode'
+import {
+    QueryRunner,
+    ObjectLiteral,
+    TableColumn,
+    Table,
+    TableForeignKey,
+    TableIndex,
+    TableUnique,
+    TypeORMError,
+    ReplicationMode,
+    TableExclusion,
+    TableCheck
+} from 'typeorm'
 import { DynamoEntityManager } from './entity-manager/DynamoEntityManager'
 import { dynamoBatchHelper } from './helpers/DynamoBatchHelper'
 import asyncPool from 'tiny-async-pool'

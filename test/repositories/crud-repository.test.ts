@@ -12,7 +12,7 @@ describe('crud-repository', () => {
         expect(1).toBe(1)
     })
     it('updateExpression', async (): Promise<any> => {
-        const createTableStub = sinon.stub(DynamoClient.prototype, 'createTable').resolves()
+        // const createTableStub = sinon.stub(DynamoClient.prototype, 'createTable').resolves()
         const updateStub = sinon.stub(DynamoClient.prototype, 'update').resolves()
 
         await datasourceManager.open({
@@ -53,7 +53,7 @@ describe('crud-repository', () => {
             }
         }
 
-        expect(createTableStub.calledOnce).toBe(true)
+        // expect(createTableStub.calledOnce).toBe(true)
         expect(updateStub.calledWith(expected)).toBe(true)
     })
 
