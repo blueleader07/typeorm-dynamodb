@@ -1,6 +1,6 @@
 {
   "name": "typeorm-dynamodb",
-  "version": "3.0.11",
+  "version": "3.0.13",
   "description": "Query a DynamoDB database with NodeJS",
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
@@ -55,7 +55,8 @@
   },
   "peerDependencies": {
     "@aws-sdk/client-dynamodb": "^3",
-    "@aws-sdk/lib-dynamodb": "^3"
+    "@aws-sdk/lib-dynamodb": "^3",
+    "@aws-sdk/util-dynamodb": "^3"
   },
   "engines": {
     "node": "16 || 18"

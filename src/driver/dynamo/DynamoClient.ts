@@ -10,7 +10,15 @@ import {
     BatchGetItemInput,
     ScanCommand,
     QueryCommand,
-    DeleteTableCommand, ListTablesCommand, ListTablesCommandInput, CreateTableCommandInput, CreateTableCommand
+    DeleteTableCommand,
+    ListTablesCommand,
+    CreateTableCommand,
+    DescribeTableInput,
+    DescribeTableCommand,
+    CreateTableInput,
+    UpdateTableInput,
+    UpdateTableCommand,
+    ListTablesInput
 } from '@aws-sdk/client-dynamodb'
 import { environmentUtils } from './utils/environment-utils'
 import {
@@ -31,7 +39,8 @@ export class DynamoClient {
         })
         return LibDynamoDb.DynamoDBDocumentClient.from(client, {
             marshallOptions: {
-                convertClassInstanceToMap: true
+                convertClassInstanceToMap: true,
+                removeUndefinedValues: true
             }
         })
     }
@@ -92,18 +101,32 @@ export class DynamoClient {
         return this.getClient().send(new DeleteTableCommand(params))
     }
 
-    listTables (params: ListTablesCommandInput) {
+    describeTable (params: DescribeTableInput) {
+        if (environmentUtils.isTrue('DEBUG_DYNAMODB')) {
+            console.log('dynamodb describe table', params)
+        }
+        return this.getClient().send(new DescribeTableCommand(params))
+    }
+
+    listTables (params: ListTablesInput) {
         if (environmentUtils.isTrue('DEBUG_DYNAMODB')) {
             console.log('dynamodb list tables', params)
         }
         return this.getClient().send(new ListTablesCommand(params))
     }
 
-    createTable (params: CreateTableCommandInput) {
+    createTable (params: CreateTableInput) {
         if (environmentUtils.isTrue('DEBUG_DYNAMODB')) {
             console.log('dynamodb create table', params)
         }
         return this.getClient().send(new CreateTableCommand(params))
+    }
+
+    updateTable (params: UpdateTableInput) {
+        if (environmentUtils.isTrue('DEBUG_DYNAMODB')) {
+            console.log('dynamodb create table', params)
+        }
+        return this.getClient().send(new UpdateTableCommand(params))
     }
 }
 

@@ -56,11 +56,11 @@ export class DynamoRepository<
         return this.findOne(key)
     }
 
-    async find (options: FindOptions | any): Promise<Entity[]> {
+    async find (options?: FindOptions | any): Promise<Entity[]> {
         return this.manager.find(this.metadata.tableName, options)
     }
 
-    async findAll (options: FindOptions): Promise<Entity[]> {
+    async findAll (options?: FindOptions): Promise<Entity[]> {
         return this.manager.findAll(this.metadata.tableName, options)
     }
 
@@ -87,7 +87,7 @@ export class DynamoRepository<
         })
     }
 
-    scan (options: ScanOptions) {
+    scan (options?: ScanOptions) {
         return this.manager.scan(this.metadata.tableName, options)
     }
 

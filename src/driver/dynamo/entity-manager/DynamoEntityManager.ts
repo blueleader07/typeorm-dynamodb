@@ -29,12 +29,17 @@ import { BatchWriteItem } from '../models/BatchWriteItem'
 import { DataSource } from 'typeorm/data-source'
 import { mixin, isEmpty } from '../helpers/DynamoObjectHelper'
 import { getDocumentClient } from '../DynamoClient'
+import { unmarshall } from '@aws-sdk/util-dynamodb'
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
     return {
         id: item.id
     }
+}
+
+const unmarshallAll = (items?: any[]) => {
+    return (items || []).map(item => unmarshall(item))
 }
 
 export class DynamoEntityManager extends EntityManager {
@@ -91,22 +96,20 @@ export class DynamoEntityManager extends EntityManager {
         entityClassOrName: EntityTarget<Entity>,
         options?: FindOptions | any
     ): Promise<Entity[]> {
-        if (options) {
-            const dbClient = getDocumentClient()
-            const metadata = this.connection.getMetadata(entityClassOrName)
-            const params = paramHelper.find(
-                metadata.tablePath,
-                options,
-                metadata.indices
-            )
-            const results = isEmpty(options.where)
-                ? await dbClient.scan(params)
-                : await dbClient.query(params)
-            const items: any = results.Items || []
-            items.lastEvaluatedKey = results.LastEvaluatedKey
-            return items
-        }
-        return []
+        options = options || {}
+        const dbClient = getDocumentClient()
+        const metadata = this.connection.getMetadata(entityClassOrName)
+        const params = paramHelper.find(
+            metadata.tablePath,
+            options,
+            metadata.indices
+        )
+        const results = isEmpty(options.where)
+            ? await dbClient.scan(params)
+            : await dbClient.query(params)
+        const items: any = unmarshallAll(results.Items)
+        items.lastEvaluatedKey = results.LastEvaluatedKey
+        return items
     }
 
     /**
@@ -114,8 +117,9 @@ export class DynamoEntityManager extends EntityManager {
      */
     async findAll<Entity> (
         entityClassOrName: EntityTarget<Entity>,
-        options: FindOptions
+        options?: FindOptions
     ): Promise<Entity[]> {
+        options = options || {}
         delete options.limit
         const dbClient = getDocumentClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
@@ -125,11 +129,15 @@ export class DynamoEntityManager extends EntityManager {
             metadata.indices
         )
         let items: any[] = []
-        let results = await dbClient.query(params)
-        items = items.concat(results.Items || [])
+        let results = isEmpty(options.where)
+            ? await dbClient.scan(params)
+            : await dbClient.query(params)
+        items = items.concat(unmarshallAll(results.Items))
         while (results.LastEvaluatedKey) {
             params.ExclusiveStartKey = results.LastEvaluatedKey
-            results = await dbClient.query(params)
+            results = isEmpty(options.where)
+                ? await dbClient.scan(params)
+                : await dbClient.query(params)
             items = items.concat(results.Items || [])
         }
         return items
@@ -137,8 +145,9 @@ export class DynamoEntityManager extends EntityManager {
 
     async scan<Entity> (
         entityClassOrName: EntityTarget<Entity>,
-        options: ScanOptions
+        options?: ScanOptions
     ) {
+        options = options || {}
         const dbClient = getDocumentClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const params: any = {
@@ -154,7 +163,7 @@ export class DynamoEntityManager extends EntityManager {
             params.ExclusiveStartKey = options.exclusiveStartKey
         }
         const results: any = await dbClient.scan(params)
-        const items = results.Items || []
+        const items: any = unmarshallAll(results.Items)
         items.LastEvaluatedKey = results.LastEvaluatedKey
         return items
     }
@@ -186,7 +195,7 @@ export class DynamoEntityManager extends EntityManager {
             metadata.indices
         )
         const results = await dbClient.query(params)
-        const items: any = results.Items || []
+        const items: any = unmarshallAll(results.Items)
         return items.length > 0 ? items[0] : undefined
     }
 
@@ -208,7 +217,7 @@ export class DynamoEntityManager extends EntityManager {
             metadata.indices
         )
         const results = await dbClient.query(params)
-        const items: any = results.Items || []
+        const items: any = unmarshallAll(results.Items)
         return items.length > 0 ? items[0] : undefined
     }
 
@@ -364,7 +373,7 @@ export class DynamoEntityManager extends EntityManager {
                     RequestItems: requestItems
                 })
             if (response.Responses !== undefined) {
-                items = items.concat(response.Responses[metadata.tablePath])
+                items = items.concat(unmarshallAll(response.Responses[metadata.tablePath]))
             }
         }
         return items

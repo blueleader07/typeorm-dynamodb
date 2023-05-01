@@ -1,6 +1,7 @@
 import { dynamoAttributeHelper } from '../helpers/DynamoAttributeHelper'
 import { poundToUnderscore } from '../helpers/DynamoTextHelper'
 import { isNotEmpty } from '../helpers/DynamoObjectHelper'
+import { marshall } from '@aws-sdk/util-dynamodb'
 
 export class BeginsWith {
     attribute: string
@@ -53,12 +54,12 @@ export class FindOptions {
             const values: any = {}
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i]
-                values[`:${poundToUnderscore(key)}`] = findOptions.where[key]
+                values[`:${poundToUnderscore(key)}`] = marshall(findOptions.where[key])
             }
             if (findOptions.beginsWith) {
                 values[
                     `:${poundToUnderscore(findOptions.beginsWith.attribute)}`
-                ] = findOptions.beginsWith.value
+                ] = marshall(findOptions.beginsWith.value)
             }
             return values
         }

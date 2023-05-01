@@ -24,7 +24,7 @@ describe('param-helper', () => {
                 '#machineId': 'machineId'
             },
             ExpressionAttributeValues: {
-                ':machineId': '9117e83c-6e58-424b-9650-6027c8b67386'
+                ':machineId': { S: '9117e83c-6e58-424b-9650-6027c8b67386' }
             },
             IndexName: 'machineIdIndex',
             KeyConditionExpression: '#machineId = :machineId',
@@ -55,8 +55,8 @@ describe('param-helper', () => {
                 '#searchName': 'searchName'
             },
             ExpressionAttributeValues: {
-                ':searchInitial': 'm',
-                ':searchName': 'my-machine'
+                ':searchInitial': { S: 'm' },
+                ':searchName': { S: 'my-machine' }
             },
             IndexName: 'searchByNameIndex',
             KeyConditionExpression: '#searchInitial = :searchInitial and begins_with(#searchName, :searchName)',
@@ -84,8 +84,8 @@ describe('param-helper', () => {
                 '#variance': 'variance'
             },
             ExpressionAttributeValues: {
-                ':monthId': MONTH_ID,
-                ':variance': VARIANCE
+                ':monthId': { S: MONTH_ID },
+                ':variance': { S: VARIANCE }
             },
             IndexName: 'monthIdIndex',
             KeyConditionExpression: '#monthId = :monthId and #variance = :variance',

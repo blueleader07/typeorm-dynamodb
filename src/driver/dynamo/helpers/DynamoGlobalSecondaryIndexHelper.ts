@@ -203,7 +203,6 @@ export const updateGlobalSecondaryIndexes = async (
             .describeTable({
                 TableName: tableName
             })
-            .promise()
         const existingGlobalSecondaryIndexes =
             existing.Table.GlobalSecondaryIndexes || []
         const map = new Map()
@@ -280,7 +279,6 @@ export const deleteGlobalSecondaryIndex = async (
                     }
                 ]
             })
-            .promise()
         await waitUntilActive(db, tableName)
     } catch (error) {
         const _error: any = error
@@ -310,7 +308,6 @@ export const addGlobalSecondaryIndex = async (
                     }
                 ]
             })
-            .promise()
         await waitUntilActive(db, tableName)
     } catch (error) {
         const _error: any = error
