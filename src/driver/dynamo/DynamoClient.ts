@@ -20,6 +20,7 @@ import {
     UpdateTableCommand,
     ListTablesInput
 } from '@aws-sdk/client-dynamodb'
+import { NodeHttpHandler } from '@aws-sdk/node-http-handler'
 import { environmentUtils } from './utils/environment-utils'
 import {
     BatchGetCommand,
@@ -29,20 +30,28 @@ import {
     PutCommand, UpdateCommand
 } from '@aws-sdk/lib-dynamodb'
 
+let dynamoDBDocumentClient: DynamoDBDocumentClient
+
 export class DynamoClient {
     getClient (): DynamoDBDocumentClient {
-        const ClientDynamoDb = PlatformTools.load('@aws-sdk/client-dynamodb')
-        const LibDynamoDb = PlatformTools.load('@aws-sdk/lib-dynamodb')
-        const client = new ClientDynamoDb.DynamoDBClient({
-            region: environmentUtils.getVariable('DYNAMO_REGION') || 'us-east-1',
-            endpoint: environmentUtils.getVariable('DYNAMO_ENDPOINT')
-        })
-        return LibDynamoDb.DynamoDBDocumentClient.from(client, {
-            marshallOptions: {
-                convertClassInstanceToMap: true,
-                removeUndefinedValues: true
-            }
-        })
+        if (!dynamoDBDocumentClient) {
+            const ClientDynamoDb = PlatformTools.load('@aws-sdk/client-dynamodb')
+            const LibDynamoDb = PlatformTools.load('@aws-sdk/lib-dynamodb')
+            const client = new ClientDynamoDb.DynamoDBClient({
+                region: environmentUtils.getVariable('DYNAMO_REGION') || 'us-east-1',
+                endpoint: environmentUtils.getVariable('DYNAMO_ENDPOINT'),
+                requestHandler: new NodeHttpHandler({
+                    requestTimeout: 10000 // <- this decreases the emfiles count, the Node.js default is 120000
+                })
+            })
+            dynamoDBDocumentClient = LibDynamoDb.DynamoDBDocumentClient.from(client, {
+                marshallOptions: {
+                    convertClassInstanceToMap: true,
+                    removeUndefinedValues: true
+                }
+            })
+        }
+        return dynamoDBDocumentClient
     }
 
     put (params: PutItemInput) {
