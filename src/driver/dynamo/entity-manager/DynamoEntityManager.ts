@@ -30,6 +30,7 @@ import { DataSource } from 'typeorm/data-source'
 import { mixin, isEmpty } from '../helpers/DynamoObjectHelper'
 import { getDocumentClient } from '../DynamoClient'
 import { unmarshall } from '@aws-sdk/util-dynamodb'
+import { PagingAndSortingRepository } from '../repository/PagingAndSortingRepository'
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
@@ -54,6 +55,10 @@ export class DynamoEntityManager extends EntityManager {
 
     constructor (connection: DataSource) {
         super(connection)
+    }
+
+    getRepository<Entity extends ObjectLiteral> (target: EntityTarget<Entity>): PagingAndSortingRepository<Entity> {
+        return new PagingAndSortingRepository(target, this, this.queryRunner)
     }
 
     // -------------------------------------------------------------------------

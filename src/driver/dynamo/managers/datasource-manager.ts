@@ -2,30 +2,118 @@ import { ObjectType } from 'typeorm/common/ObjectType'
 import { EntitySchema } from 'typeorm/entity-schema/EntitySchema'
 import {
     DataSource, EntityManager,
-    EntityTarget, QueryRunner
+    EntityTarget, MissingDriverError, MongoEntityManager, QueryRunner
 } from 'typeorm'
-import { DynamoDriver } from '../DynamoDriver'
 import { commonUtils } from '../utils/common-utils'
 import { DriverFactory } from 'typeorm/driver/DriverFactory'
 import { EntityManagerFactory } from 'typeorm/entity-manager/EntityManagerFactory'
 import { DynamoEntityManager } from '../entity-manager/DynamoEntityManager'
 import { PlatformTools } from 'typeorm/platform/PlatformTools'
 import path from 'path'
-import { ObjectLiteral } from 'typeorm/common/ObjectLiteral'
 import { PagingAndSortingRepository } from '../repository/PagingAndSortingRepository'
+import { SqljsEntityManager } from 'typeorm/entity-manager/SqljsEntityManager'
+import { MysqlDriver } from 'typeorm/driver/mysql/MysqlDriver'
+import { PostgresDriver } from 'typeorm/driver/postgres/PostgresDriver'
+import { CockroachDriver } from 'typeorm/driver/cockroachdb/CockroachDriver'
+import { SapDriver } from 'typeorm/driver/sap/SapDriver'
+import { SqliteDriver } from 'typeorm/driver/sqlite/SqliteDriver'
+import { BetterSqlite3Driver } from 'typeorm/driver/better-sqlite3/BetterSqlite3Driver'
+import { CordovaDriver } from 'typeorm/driver/cordova/CordovaDriver'
+import { NativescriptDriver } from 'typeorm/driver/nativescript/NativescriptDriver'
+import { ReactNativeDriver } from 'typeorm/driver/react-native/ReactNativeDriver'
+import { SqljsDriver } from 'typeorm/driver/sqljs/SqljsDriver'
+import { OracleDriver } from 'typeorm/driver/oracle/OracleDriver'
+import { SqlServerDriver } from 'typeorm/driver/sqlserver/SqlServerDriver'
+import { MongoDriver } from 'typeorm/driver/mongodb/MongoDriver'
+import { DynamoDriver } from '../DynamoDriver'
+import { ExpoDriver } from 'typeorm/driver/expo/ExpoDriver'
+import { AuroraMysqlDriver } from 'typeorm/driver/aurora-mysql/AuroraMysqlDriver'
+import { AuroraPostgresDriver } from 'typeorm/driver/aurora-postgres/AuroraPostgresDriver'
+import { CapacitorDriver } from 'typeorm/driver/capacitor/CapacitorDriver'
+import { SpannerDriver } from 'typeorm/driver/spanner/SpannerDriver'
 
 let connection: any = null
 let entityManager: any = null
 
 DriverFactory.prototype.create = (connection: DataSource) => {
-    return new DynamoDriver(connection)
-}
-EntityManager.prototype.getRepository = <Entity extends ObjectLiteral>(target: EntityTarget<Entity>): PagingAndSortingRepository<Entity> => {
-    const repository: any = new PagingAndSortingRepository(target, entityManager, EntityManager.prototype.queryRunner)
-    return repository
+    const { type }: any = connection.options
+    switch (type) {
+    case 'mysql':
+        return new MysqlDriver(connection)
+    case 'postgres':
+        return new PostgresDriver(connection)
+    case 'cockroachdb':
+        return new CockroachDriver(connection)
+    case 'sap':
+        return new SapDriver(connection)
+    case 'mariadb':
+        return new MysqlDriver(connection)
+    case 'sqlite':
+        return new SqliteDriver(connection)
+    case 'better-sqlite3':
+        return new BetterSqlite3Driver(connection)
+    case 'cordova':
+        return new CordovaDriver(connection)
+    case 'nativescript':
+        return new NativescriptDriver(connection)
+    case 'react-native':
+        return new ReactNativeDriver(connection)
+    case 'sqljs':
+        return new SqljsDriver(connection)
+    case 'oracle':
+        return new OracleDriver(connection)
+    case 'mssql':
+        return new SqlServerDriver(connection)
+    case 'mongodb':
+        return new MongoDriver(connection)
+    case 'dynamodb':
+        return new DynamoDriver(connection) as any
+    case 'expo':
+        return new ExpoDriver(connection)
+    case 'aurora-mysql':
+        return new AuroraMysqlDriver(connection)
+    case 'aurora-postgres':
+        return new AuroraPostgresDriver(connection)
+    case 'capacitor':
+        return new CapacitorDriver(connection)
+    case 'spanner':
+        return new SpannerDriver(connection)
+    default:
+        throw new MissingDriverError(type, [
+            'aurora-mysql',
+            'aurora-postgres',
+            'better-sqlite3',
+            'capacitor',
+            'cockroachdb',
+            'cordova',
+            'expo',
+            'mariadb',
+            'mongodb',
+            'dynamodb',
+            'mssql',
+            'mysql',
+            'nativescript',
+            'oracle',
+            'postgres',
+            'react-native',
+            'sap',
+            'sqlite',
+            'sqljs',
+            'spanner'
+        ])
+    }
 }
 EntityManagerFactory.prototype.create = (connection: DataSource, queryRunner?: QueryRunner): EntityManager => {
-    entityManager = new DynamoEntityManager(connection)
+    const type: any = connection.driver.options.type
+    if (type === 'dynamodb') {
+        entityManager = new DynamoEntityManager(connection)
+    } else if (type === 'mongodb') {
+        entityManager = new MongoEntityManager(connection)
+    } else if (type === 'sqljs') {
+        entityManager = new SqljsEntityManager(connection, queryRunner)
+    } else {
+        entityManager = new EntityManager(connection, queryRunner)
+    }
     return entityManager
 }
 PlatformTools.load = function (name) {
