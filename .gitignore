@@ -5,5 +5,5 @@ test-reports
 dist
 src/entities/*.java
 src/entities/*.ts
-!src/entities/base-entity.ts
+!src/driver/dynamo/entities/base-entity.ts
 coverage

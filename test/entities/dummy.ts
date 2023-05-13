@@ -1,10 +1,10 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm'
-import { BaseEntity, GlobalSecondaryIndex } from '../../src'
+import { GlobalSecondaryIndex } from '../../src'
 
 @GlobalSecondaryIndex({ name: 'idAndAdjustmentStatusIndex', partitionKey: ['id', 'adjustmentStatus'], sortKey: 'created' })
 @GlobalSecondaryIndex({ name: 'adjustmentGroupIdStatusIndex', partitionKey: ['adjustmentGroupId', 'adjustmentStatus'], sortKey: 'lineItemNumber' })
 @Entity({ name: 'dummy_t' })
-export class Dummy extends BaseEntity {
+export class Dummy {
     @PrimaryColumn({ name: 'id', type: 'varchar' })
     id: string
 
@@ -22,4 +22,7 @@ export class Dummy extends BaseEntity {
 
     @Column({ name: 'error', type: 'varchar' })
     error: string
+
+    @Column({ name: 'created', type: 'varchar' })
+    created: string
 }

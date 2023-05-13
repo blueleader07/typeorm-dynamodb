@@ -1,7 +1,5 @@
 import expect from 'expect'
-import { FindOptions } from '../../src/models/find-options'
-import { UpdateOptions } from '../../src/models/update-options'
-import { paramHelper } from '../../src/helpers/param-helper'
+import { FindOptions, UpdateExpressionOptions, paramHelper } from '../../src'
 
 const MACHINE_ID = '9117e83c-6e58-424b-9650-6027c8b67386'
 const MONTH_ID = `${MACHINE_ID}-2020-12`
@@ -26,7 +24,7 @@ describe('param-helper', () => {
                 '#machineId': 'machineId'
             },
             ExpressionAttributeValues: {
-                ':machineId': '9117e83c-6e58-424b-9650-6027c8b67386'
+                ':machineId': { S: '9117e83c-6e58-424b-9650-6027c8b67386' }
             },
             IndexName: 'machineIdIndex',
             KeyConditionExpression: '#machineId = :machineId',
@@ -57,8 +55,8 @@ describe('param-helper', () => {
                 '#searchName': 'searchName'
             },
             ExpressionAttributeValues: {
-                ':searchInitial': 'm',
-                ':searchName': 'my-machine'
+                ':searchInitial': { S: 'm' },
+                ':searchName': { S: 'my-machine' }
             },
             IndexName: 'searchByNameIndex',
             KeyConditionExpression: '#searchInitial = :searchInitial and begins_with(#searchName, :searchName)',
@@ -86,8 +84,8 @@ describe('param-helper', () => {
                 '#variance': 'variance'
             },
             ExpressionAttributeValues: {
-                ':monthId': MONTH_ID,
-                ':variance': VARIANCE
+                ':monthId': { S: MONTH_ID },
+                ':variance': { S: VARIANCE }
             },
             IndexName: 'monthIdIndex',
             KeyConditionExpression: '#monthId = :monthId and #variance = :variance',
@@ -97,7 +95,7 @@ describe('param-helper', () => {
     })
     it('update with ADD', async (): Promise<any> => {
         /** given: **/
-        const options = new UpdateOptions()
+        const options = new UpdateExpressionOptions()
         options.addValues = {
             total: 1,
             count: 1
@@ -131,7 +129,7 @@ describe('param-helper', () => {
 
     it('update with SET', async (): Promise<any> => {
         /** given: **/
-        const options = new UpdateOptions()
+        const options = new UpdateExpressionOptions()
         options.setValues = {
             status: 'failed',
             error: 'some error occurred',
