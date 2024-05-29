@@ -22,7 +22,7 @@ const indexedWhere = (
             const value = options.where[column.propertyName]
             values.push(value)
         }
-        where[partitionKey] = values.join('#')
+        where[partitionKey] = values.length > 1 ? values.join('#') : values[0]
     }
     return isNotEmpty(where) ? where : options.where
 }
