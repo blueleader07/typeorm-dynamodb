@@ -20,7 +20,7 @@ import {
     UpdateTableCommand,
     ListTablesInput
 } from '@aws-sdk/client-dynamodb'
-import { NodeHttpHandler } from '@aws-sdk/node-http-handler'
+import { NodeHttpHandler } from '@smithy/node-http-handler'
 import { environmentUtils } from './utils/environment-utils'
 import {
     BatchGetCommand,
