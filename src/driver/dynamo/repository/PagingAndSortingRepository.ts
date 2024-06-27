@@ -4,6 +4,7 @@ import { PageExpensive } from '../models/PageExpensive'
 import { Page } from '../models/Page'
 import { DynamoRepository } from './DynamoRepository'
 import { isEmpty } from '../helpers/DynamoObjectHelper'
+import { ObjectLiteral } from 'typeorm'
 
 const encode = (json: object) => {
     if (json) {
@@ -16,7 +17,7 @@ const decode = (data: string) => {
     return JSON.parse(Buffer.from(data, 'base64').toString('ascii'))
 }
 
-export class PagingAndSortingRepository<T> extends DynamoRepository<T> {
+export class PagingAndSortingRepository<T extends ObjectLiteral> extends DynamoRepository<T> {
     /**
      * Queries by page size and exclusiveStartKey
      */
