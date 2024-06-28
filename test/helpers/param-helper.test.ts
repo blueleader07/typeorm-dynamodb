@@ -1,5 +1,5 @@
 import expect from 'expect'
-import { FindOptions, UpdateExpressionOptions, paramHelper } from '../../src'
+import { BeginsWith, FindOptions, UpdateExpressionOptions, paramHelper } from '../../src'
 
 const MACHINE_ID = '9117e83c-6e58-424b-9650-6027c8b67386'
 const MONTH_ID = `${MACHINE_ID}-2020-12`
@@ -38,11 +38,8 @@ describe('param-helper', () => {
         const options = new FindOptions()
         options.index = 'searchByNameIndex'
         options.where = {
-            searchInitial: 'm'
-        }
-        options.beginsWith = {
-            attribute: 'searchName',
-            value: 'my-machine'
+            searchInitial: 'm',
+            searchName: BeginsWith('my-machine')
         }
 
         /** when: **/
