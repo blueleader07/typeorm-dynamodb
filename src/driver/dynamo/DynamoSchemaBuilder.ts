@@ -10,6 +10,7 @@ import {
     updateGlobalSecondaryIndexes
 } from './helpers/DynamoGlobalSecondaryIndexHelper'
 import { getDocumentClient } from './DynamoClient'
+import { BillingMode } from '@aws-sdk/client-dynamodb'
 
 export const metadataArgsStorage: MetadataArgsStorage = getMetadataArgsStorage()
 
@@ -60,7 +61,7 @@ export class DynamoSchemaBuilder implements SchemaBuilder {
             const attributeDefinitions = buildAttributeDefinitions(metadata, driver)
             const schema = {
                 AttributeDefinitions: attributeDefinitions,
-                BillingMode: 'PAY_PER_REQUEST',
+                BillingMode: BillingMode.PAY_PER_REQUEST,
                 TableName: driver.buildTableName(metadata.tableName, metadata.schema, metadata.database),
                 KeySchema: keySchema,
                 GlobalSecondaryIndexes: globalSecondaryIndexes.length > 0 ? globalSecondaryIndexes : undefined

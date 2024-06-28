@@ -59,6 +59,14 @@ const batchWrite = async (tableName: string, batch: any[]) => {
         })
 }
 
+const asyncPoolAll = async (concurrency: any, iterable: any, iteratorFn: any) => {
+    const results = []
+    for await (const result of asyncPool(concurrency, iterable, iteratorFn)) {
+        results.push(result)
+    }
+    return results
+}
+
 export class DynamoQueryRunner implements QueryRunner {
     // -------------------------------------------------------------------------
     // Public Implemented Properties
@@ -176,7 +184,7 @@ export class DynamoQueryRunner implements QueryRunner {
         if (keys.length > 0) {
             const batchOptions = options || { maxConcurrency: 8 }
             const batches = dynamoBatchHelper.batch(keys)
-            await asyncPool(
+            await asyncPoolAll(
                 batchOptions.maxConcurrency,
                 batches,
                 (batch: any[][]) => {
@@ -208,7 +216,7 @@ export class DynamoQueryRunner implements QueryRunner {
         if (docs.length > 0) {
             const batchOptions = options || { maxConcurrency: 8 }
             const batches = dynamoBatchHelper.batch(docs)
-            await asyncPool(
+            await asyncPoolAll(
                 batchOptions.maxConcurrency,
                 batches,
                 (batch: any[][]) => {
@@ -457,6 +465,18 @@ export class DynamoQueryRunner implements QueryRunner {
     async renameTable (
         oldTableOrName: Table | string,
         newTableOrName: Table | string
+    ): Promise<void> {
+        throw new TypeORMError(
+            'Schema update queries are not supported by DynamoDB driver.'
+        )
+    }
+
+    /**
+     * Renames the given table.
+     */
+    async changeTableComment (
+        tableOrName: Table | string,
+        comment?: string
     ): Promise<void> {
         throw new TypeORMError(
             'Schema update queries are not supported by DynamoDB driver.'

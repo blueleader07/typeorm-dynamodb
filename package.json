@@ -1,6 +1,6 @@
 {
   "name": "typeorm-dynamodb",
-  "version": "3.0.36",
+  "version": "3.0.37",
   "description": "Query a DynamoDB database with NodeJS",
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
@@ -29,7 +29,7 @@
     "@types/jest": "27.5.2",
     "@types/node": "^15.12.5",
     "@types/sinon": "^9.0.7",
-    "@types/tiny-async-pool": "^1.0.0",
+    "@types/tiny-async-pool": "^2.0.3",
     "@types/uuid": "^9.0.1",
     "@typescript-eslint/eslint-plugin": "^4.4.0",
     "@typescript-eslint/parser": "^4.4.0",
@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "bignumber.js": "^9.0.1",
-    "tiny-async-pool": "^1.2.0",
+    "tiny-async-pool": "^2.1.0",
     "typeorm": "^0.3.15",
     "uuid": "^9.0.0"
   },
