@@ -378,7 +378,7 @@ export class DynamoEntityManager extends EntityManager {
                     RequestItems: requestItems
                 })
             if (response.Responses !== undefined) {
-                items = items.concat(unmarshallAll(response.Responses[metadata.tablePath]))
+                items = items.concat(response.Responses[metadata.tablePath])
             }
         }
         return items
