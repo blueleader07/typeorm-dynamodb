@@ -39,6 +39,41 @@ describe('dynamic-repository', () => {
         // expect(getStub.calledOnce).toBe(true)
         expect(item).toBeDefined()
     })
+
+    it('batchRead', async (): Promise<any> => {
+        await open({
+            entities: [Dummy],
+            synchronize: true
+        })
+        const repository = getRepository(Dummy)
+
+        const dummy: any = new Dummy()
+        dummy.id = '123'
+        dummy.name = 'some-dummy-name'
+        dummy.adjustmentGroupId = '1'
+        dummy.adjustmentStatus = 'processed'
+        dummy.error = undefined
+
+        const results: any = {
+            Responses: {
+                dummy_t: [marshall(dummy, { convertClassInstanceToMap: true, removeUndefinedValues: true })]
+            }
+        }
+
+        const batchGetStub = sinon.stub(DynamoClient.prototype, 'batchGet')
+        batchGetStub.resolves(results)
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
+
+        await repository.put(dummy)
+
+        const items = await repository.batchRead([{ id: '123' }])
+
+        // expect(putStub.calledOnce).toBe(true)
+        // expect(getStub.calledOnce).toBe(true)
+        expect(items).toBeDefined()
+    })
+
     it('query', async (): Promise<any> => {
         await open({
             entities: [Dummy],
