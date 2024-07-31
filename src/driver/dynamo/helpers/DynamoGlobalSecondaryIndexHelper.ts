@@ -175,7 +175,6 @@ export const waitUntilActive = async (db: any, tableName: string) => {
                 .describeTable({
                     TableName: tableName
                 })
-                .promise()
             const status = result.Table.TableStatus
             if (status === 'ACTIVE') {
                 break
