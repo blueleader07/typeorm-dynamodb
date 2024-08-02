@@ -1,5 +1,6 @@
 import expect from 'expect'
 import { BeginsWith, FindOptions, UpdateExpressionOptions, paramHelper } from '../../src'
+import { IndexMetadata } from 'typeorm/metadata/IndexMetadata.js'
 
 const MACHINE_ID = '9117e83c-6e58-424b-9650-6027c8b67386'
 const MONTH_ID = `${MACHINE_ID}-2020-12`
@@ -41,9 +42,16 @@ describe('param-helper', () => {
             searchInitial: 'm',
             searchName: BeginsWith('my-machine')
         }
+        const indices = [{
+            name: 'searchByNameIndex',
+            columns: [{
+                propertyName: 'searchInitial'
+            }],
+            where: 'searchName'
+        } as IndexMetadata]
 
         /** when: **/
-        const params = paramHelper.find('local-toucan-scores', options)
+        const params = paramHelper.find('local-toucan-scores', options, indices)
 
         /** then: **/
         expect(params).toEqual({
