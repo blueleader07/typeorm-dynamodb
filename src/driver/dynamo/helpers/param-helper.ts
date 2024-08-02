@@ -27,7 +27,10 @@ const indexedWhere = (
             const sortColumns = index.where.split('#')
             const sortValues = []
             for (let i = 0; i < sortColumns.length; i += 1) {
-                sortValues.push(options.where[sortColumns[i]])
+                const sortValue = options.where[sortColumns[i]]
+                if (sortValue) {
+                    sortValues.push(options.where[sortColumns[i]])
+                }
             }
             if (sortValues.length) {
                 where[index.where] = sortValues.length > 1 ? sortValues.join('#') : sortValues[0]
