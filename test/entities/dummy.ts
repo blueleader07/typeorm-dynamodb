@@ -3,6 +3,7 @@ import { GlobalSecondaryIndex } from '../../src'
 
 @GlobalSecondaryIndex({ name: 'idAndAdjustmentStatusIndex', partitionKey: ['id', 'adjustmentStatus'], sortKey: 'created' })
 @GlobalSecondaryIndex({ name: 'adjustmentGroupIdStatusIndex', partitionKey: ['adjustmentGroupId', 'adjustmentStatus'], sortKey: 'lineItemNumber' })
+@GlobalSecondaryIndex({ name: 'adjustmentGroupIdStatusIndex2', partitionKey: ['adjustmentGroupId', 'adjustmentStatus'], sortKey: ['lineItemNumber', 'lineItemName'] })
 @Entity({ name: 'dummy_t' })
 export class Dummy {
     @PrimaryColumn({ name: 'id', type: 'varchar' })
@@ -19,6 +20,9 @@ export class Dummy {
 
     @Column({ name: 'lineItemNumber', type: 'int' })
     lineItemNumber: number
+
+    @Column({ name: 'lineItemName', type: 'varchar' })
+    lineItemName: string
 
     @Column({ name: 'error', type: 'varchar' })
     error: string

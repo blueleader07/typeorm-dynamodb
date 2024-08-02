@@ -4,6 +4,16 @@ import { buildPartitionKey } from './DynamoGlobalSecondaryIndexHelper'
 import { IndexMetadata } from 'typeorm/metadata/IndexMetadata'
 import { isNotEmpty } from './DynamoObjectHelper'
 
+const hasSortValue = (sortValues: any) => {
+    if (sortValues && sortValues.length > 0) {
+        for (const sortValue of sortValues) {
+            if (sortValue !== '') {
+                return true
+            }
+        }
+    }
+}
+
 const indexedWhere = (
     options: FindOptions,
     indices?: IndexMetadata[]
@@ -30,9 +40,11 @@ const indexedWhere = (
                 const sortValue = options.where[sortColumns[i]]
                 if (sortValue) {
                     sortValues.push(options.where[sortColumns[i]])
+                } else {
+                    sortValues.push('')
                 }
             }
-            if (sortValues.length) {
+            if (hasSortValue(sortValues)) {
                 where[index.where] = sortValues.length > 1 ? sortValues.join('#') : sortValues[0]
             }
         }

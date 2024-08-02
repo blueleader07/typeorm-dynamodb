@@ -25,14 +25,26 @@ const partitionKeyColumns = (columns: ColumnMetadata[], doc: ObjectLiteral) => {
     }
 }
 
+const hasSortValue = (doc: ObjectLiteral, columns: string[]) => {
+    if (columns && columns.length > 0) {
+        for (const column of columns) {
+            if (doc[column] !== undefined) {
+                return true
+            }
+        }
+    }
+}
+
 const sortKeyColumns = (sortKey: string, doc: ObjectLiteral) => {
     const columns = sortKey.split('#')
     if (columns.length > 1) {
-        doc[sortKey] = columns
-            .map((column) => {
-                return doc[column]
-            })
-            .join('#')
+        if (hasSortValue(doc, columns)) {
+            doc[sortKey] = columns
+                .map((column) => {
+                    return doc[column]
+                })
+                .join('#')
+        }
     }
 }
 

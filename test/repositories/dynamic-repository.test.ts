@@ -35,8 +35,8 @@ describe('dynamic-repository', () => {
 
         const item = await repository.get(dummy.id)
 
-        // expect(putStub.calledOnce).toBe(true)
-        // expect(getStub.calledOnce).toBe(true)
+        expect(putStub.calledOnce).toBe(true)
+        expect(getStub.calledOnce).toBe(true)
         expect(item).toBeDefined()
     })
 
@@ -69,8 +69,8 @@ describe('dynamic-repository', () => {
 
         const items = await repository.batchRead([{ id: '123' }])
 
-        // expect(putStub.calledOnce).toBe(true)
-        // expect(getStub.calledOnce).toBe(true)
+        expect(putStub.calledOnce).toBe(true)
+        expect(batchGetStub.calledOnce).toBe(true)
         expect(items).toBeDefined()
     })
 
@@ -241,6 +241,122 @@ describe('dynamic-repository', () => {
         expect(queryStub.calledOnce).toBe(true)
         expect(items.length).toBe(1)
     })
+    it('findAll index with complex sort key', async (): Promise<any> => {
+        await open({
+            entities: [Dummy],
+            synchronize: true
+        })
+        const repository = getRepository(Dummy)
+
+        const dummy = new Dummy()
+        dummy.id = '123'
+        dummy.name = 'some-dummy-name'
+        dummy.adjustmentGroupId = '1'
+        dummy.adjustmentStatus = 'processed'
+        dummy.lineItemNumber = 1
+        dummy.lineItemName = 'hours-worked'
+
+        const results: any = {
+            Items: [marshall(dummy, { convertClassInstanceToMap: true })]
+        }
+
+        const queryStub = sinon.stub(DynamoClient.prototype, 'query')
+        queryStub.resolves(results)
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
+
+        await repository.put(dummy)
+
+        const items = await repository.findAll({
+            index: 'adjustmentGroupIdStatusIndex2',
+            where: {
+                adjustmentGroupId: '1',
+                adjustmentStatus: 'processed',
+                lineItemNumber: 1,
+                lineItemName: 'hours-worked'
+            }
+        })
+
+        expect(putStub.calledOnce).toBe(true)
+        expect(queryStub.calledOnce).toBe(true)
+        expect(items.length).toBe(1)
+    })
+    it('findAll index with complex sort single value', async (): Promise<any> => {
+        await open({
+            entities: [Dummy],
+            synchronize: true
+        })
+        const repository = getRepository(Dummy)
+
+        const dummy = new Dummy()
+        dummy.id = '123'
+        dummy.name = 'some-dummy-name'
+        dummy.adjustmentGroupId = '1'
+        dummy.adjustmentStatus = 'processed'
+        dummy.lineItemNumber = 1
+
+        const results: any = {
+            Items: [marshall(dummy, { convertClassInstanceToMap: true })]
+        }
+
+        const queryStub = sinon.stub(DynamoClient.prototype, 'query')
+        queryStub.resolves(results)
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
+
+        await repository.put(dummy)
+
+        const items = await repository.findAll({
+            index: 'adjustmentGroupIdStatusIndex2',
+            where: {
+                adjustmentGroupId: '1',
+                adjustmentStatus: 'processed',
+                lineItemNumber: 1
+            }
+        })
+
+        expect(putStub.calledOnce).toBe(true)
+        expect(queryStub.calledOnce).toBe(true)
+        expect(items.length).toBe(1)
+    })
+    it('findAll index with complex sort single value (second value only)', async (): Promise<any> => {
+        await open({
+            entities: [Dummy],
+            synchronize: true
+        })
+        const repository = getRepository(Dummy)
+
+        const dummy = new Dummy()
+        dummy.id = '123'
+        dummy.name = 'some-dummy-name'
+        dummy.adjustmentGroupId = '1'
+        dummy.adjustmentStatus = 'processed'
+        dummy.lineItemName = 'hours-worked'
+
+        // const results: any = {
+        //     Items: [marshall(dummy, { convertClassInstanceToMap: true })]
+        // }
+        //
+        // const queryStub = sinon.stub(DynamoClient.prototype, 'query')
+        // queryStub.resolves(results)
+        // const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        // putStub.resolves()
+
+        await repository.put(dummy)
+
+        const items = await repository.findAll({
+            index: 'adjustmentGroupIdStatusIndex2',
+            where: {
+                adjustmentGroupId: '1',
+                adjustmentStatus: 'processed',
+                lineItemName: 'hours-worked'
+            }
+        })
+
+        // expect(putStub.calledOnce).toBe(true)
+        // expect(queryStub.calledOnce).toBe(true)
+        expect(items.length).toBe(1)
+    })
     it('scan', async (): Promise<any> => {
         await open({
             entities: [Dummy],
@@ -311,7 +427,6 @@ describe('dynamic-repository', () => {
                 ':id_adjustmentStatus': '111-222-333#failed'
             }
         }
-
         expect(createTableStub.calledOnce).toBe(true)
         expect(updateStub.calledWith(expected)).toBe(true)
     })
