@@ -23,6 +23,16 @@ const indexedWhere = (
             values.push(value)
         }
         where[partitionKey] = values.length > 1 ? values.join('#') : values[0]
+        if (index.where) {
+            const sortColumns = index.where.split('#')
+            const sortValues = []
+            for (let i = 0; i < sortColumns.length; i += 1) {
+                sortValues.push(options.where[sortColumns[i]])
+            }
+            if (sortValues.length) {
+                where[index.where] = sortValues.length > 1 ? sortValues.join('#') : sortValues[0]
+            }
+        }
     }
     return isNotEmpty(where) ? where : options.where
 }
