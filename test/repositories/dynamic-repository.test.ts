@@ -333,14 +333,14 @@ describe('dynamic-repository', () => {
         dummy.adjustmentStatus = 'processed'
         dummy.lineItemName = 'hours-worked'
 
-        // const results: any = {
-        //     Items: [marshall(dummy, { convertClassInstanceToMap: true })]
-        // }
-        //
-        // const queryStub = sinon.stub(DynamoClient.prototype, 'query')
-        // queryStub.resolves(results)
-        // const putStub = sinon.stub(DynamoClient.prototype, 'put')
-        // putStub.resolves()
+        const results: any = {
+            Items: [marshall(dummy, { convertClassInstanceToMap: true })]
+        }
+
+        const queryStub = sinon.stub(DynamoClient.prototype, 'query')
+        queryStub.resolves(results)
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
 
         await repository.put(dummy)
 
@@ -353,8 +353,8 @@ describe('dynamic-repository', () => {
             }
         })
 
-        // expect(putStub.calledOnce).toBe(true)
-        // expect(queryStub.calledOnce).toBe(true)
+        expect(putStub.calledOnce).toBe(true)
+        expect(queryStub.calledOnce).toBe(true)
         expect(items.length).toBe(1)
     })
     it('scan', async (): Promise<any> => {
