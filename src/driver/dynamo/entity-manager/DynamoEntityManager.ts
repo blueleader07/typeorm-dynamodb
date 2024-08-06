@@ -411,4 +411,18 @@ export class DynamoEntityManager extends EntityManager {
                 })
         }
     }
+
+    /**
+     * Execute a statement on DynamoDB.
+     */
+    async executeStatement (
+        statement: string,
+        params?: any[]
+    ) {
+        const dbClient = getDocumentClient()
+        return dbClient.executeStatement({
+            Statement: statement,
+            Parameters: params
+        })
+    }
 }
