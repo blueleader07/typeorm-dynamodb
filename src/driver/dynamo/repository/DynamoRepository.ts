@@ -171,6 +171,11 @@ export class DynamoRepository<
         return this.manager.batchWrite(this.metadata.tableName, writes)
     }
 
+    async executeStatement (statement: string, params?: any[]) {
+        const result = await this.manager.executeStatement(statement, params)
+        return result.Items as Entity[] | undefined
+    }
+
     /**
      * @deprecated use put(...) or updateExpression(...) for dynamodb.
      */

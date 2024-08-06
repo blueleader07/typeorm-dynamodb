@@ -74,6 +74,41 @@ describe('dynamic-repository', () => {
         expect(items).toBeDefined()
     })
 
+    it('executeStatement', async (): Promise<any> => {
+        await open({
+            entities: [Dummy],
+            synchronize: true
+        })
+        const repository = getRepository(Dummy)
+
+        const dummy: any = new Dummy()
+        dummy.id = '123'
+        dummy.name = 'some-dummy-name'
+        dummy.adjustmentGroupId = '1'
+        dummy.adjustmentStatus = 'processed'
+        dummy.error = undefined
+
+        const results: any = {
+            Items: [dummy]
+        }
+
+        const executeStatementStub = sinon.stub(DynamoClient.prototype, 'executeStatement')
+        executeStatementStub.resolves(results)
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
+
+        await repository.put(dummy)
+
+        const items = await repository.executeStatement(
+            'SELECT * FROM dummy_t WHERE "id#adjustmentStatus" IN [?]',
+            ['123#processed']
+        )
+
+        expect(putStub.calledOnce).toBe(true)
+        expect(executeStatementStub.calledOnce).toBe(true)
+        expect(items).toBeDefined()
+    })
+
     it('query', async (): Promise<any> => {
         await open({
             entities: [Dummy],

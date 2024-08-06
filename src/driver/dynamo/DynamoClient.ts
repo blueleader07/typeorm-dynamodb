@@ -27,7 +27,9 @@ import {
     BatchWriteCommand,
     DeleteCommand,
     DynamoDBDocumentClient,
-    PutCommand, UpdateCommand
+    PutCommand, UpdateCommand,
+    ExecuteStatementCommandInput,
+    ExecuteStatementCommand
 } from '@aws-sdk/lib-dynamodb'
 
 let dynamoDBDocumentClient: DynamoDBDocumentClient
@@ -101,6 +103,13 @@ export class DynamoClient {
             console.log('dynamodb batchWrite', params)
         }
         return this.getClient().send(new BatchWriteCommand(params))
+    }
+
+    executeStatement (params: ExecuteStatementCommandInput) {
+        if (environmentUtils.isTrue('DEBUG_DYNAMODB')) {
+            console.log('dynamodb executeStatement', params)
+        }
+        return this.getClient().send(new ExecuteStatementCommand(params))
     }
 
     deleteTable (params: DeleteTableInput) {
