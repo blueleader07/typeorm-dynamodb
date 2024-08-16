@@ -416,12 +416,14 @@ export class DynamoEntityManager extends EntityManager {
      */
     async executeStatement (
         statement: string,
-        params?: any[]
+        params?: any[],
+        nextToken?: string
     ) {
         const dbClient = getDocumentClient()
         return dbClient.executeStatement({
             Statement: statement,
-            Parameters: params
+            Parameters: params,
+            NextToken: nextToken
         })
     }
 }

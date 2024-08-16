@@ -172,8 +172,17 @@ export class DynamoRepository<
     }
 
     async executeStatement (statement: string, params?: any[]) {
-        const result = await this.manager.executeStatement(statement, params)
-        return result.Items as Entity[] | undefined
+        let result = await this.manager.executeStatement(statement, params)
+        const results = result.Items as Entity[] | undefined
+        while (result.NextToken) {
+            result = await this.manager.executeStatement(
+                statement,
+                params,
+                result.NextToken
+            )
+            results!.push(...(result.Items as Entity[]))
+        }
+        return results
     }
 
     /**
