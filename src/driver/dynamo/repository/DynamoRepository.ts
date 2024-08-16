@@ -171,6 +171,20 @@ export class DynamoRepository<
         return this.manager.batchWrite(this.metadata.tableName, writes)
     }
 
+    async executeStatement (statement: string, params?: any[]) {
+        let result = await this.manager.executeStatement(statement, params)
+        const results = result.Items as Entity[] | undefined
+        while (result.NextToken) {
+            result = await this.manager.executeStatement(
+                statement,
+                params,
+                result.NextToken
+            )
+            results!.push(...(result.Items as Entity[]))
+        }
+        return results
+    }
+
     /**
      * @deprecated use put(...) or updateExpression(...) for dynamodb.
      */

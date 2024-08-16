@@ -10,7 +10,6 @@ import { ObjectId } from 'typeorm/driver/mongodb/typings'
 import { ObjectLiteral } from 'typeorm/common/ObjectLiteral'
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils'
 import { FindOneOptions } from 'typeorm/find-options/FindOneOptions'
-import { DeepPartial } from 'typeorm/common/DeepPartial'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
 import { DynamoQueryRunner } from '../DynamoQueryRunner'
@@ -235,7 +234,7 @@ export class DynamoEntityManager extends EntityManager {
      */
     async put<Entity> (
         target: EntityTarget<Entity>,
-        entity: DeepPartial<Entity> | DeepPartial<Entity>[]
+        entity: ObjectLiteral | ObjectLiteral[]
     ): Promise<any | any[]> {
         if (Array.isArray(entity)) {
             return this.putMany(target, entity)
@@ -410,5 +409,21 @@ export class DynamoEntityManager extends EntityManager {
                     RequestItems: requestItems
                 })
         }
+    }
+
+    /**
+     * Execute a statement on DynamoDB.
+     */
+    async executeStatement (
+        statement: string,
+        params?: any[],
+        nextToken?: string
+    ) {
+        const dbClient = getDocumentClient()
+        return dbClient.executeStatement({
+            Statement: statement,
+            Parameters: params,
+            NextToken: nextToken
+        })
     }
 }
