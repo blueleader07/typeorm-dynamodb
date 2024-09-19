@@ -12,5 +12,8 @@ module.exports = {
     },
     collectCoverageFrom: [
         'src/**/*.ts*'
-    ]
+    ],
+    moduleNameMapper: {
+        '^typeorm/(.*)$': '<rootDir>/node_modules/typeorm/$1'
+    }
 }
