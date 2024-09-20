@@ -31,6 +31,7 @@ import {
     ExecuteStatementCommandInput,
     ExecuteStatementCommand
 } from '@aws-sdk/lib-dynamodb'
+import { getRegion } from './helpers/region-helper'
 
 let dynamoDBDocumentClient: DynamoDBDocumentClient
 
@@ -40,7 +41,7 @@ export class DynamoClient {
             const ClientDynamoDb = PlatformTools.load('@aws-sdk/client-dynamodb')
             const LibDynamoDb = PlatformTools.load('@aws-sdk/lib-dynamodb')
             const client = new ClientDynamoDb.DynamoDBClient({
-                region: environmentUtils.getVariable('DYNAMO_REGION') || 'us-east-1',
+                region: getRegion(),
                 endpoint: environmentUtils.getVariable('DYNAMO_ENDPOINT'),
                 requestHandler: new NodeHttpHandler({
                     requestTimeout: 10000 // <- this decreases the emfiles count, the Node.js default is 120000
