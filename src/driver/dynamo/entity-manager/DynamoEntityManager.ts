@@ -142,7 +142,7 @@ export class DynamoEntityManager extends EntityManager {
             results = isEmpty(options.where)
                 ? await dbClient.scan(params)
                 : await dbClient.query(params)
-            items = items.concat(results.Items || [])
+            items = items.concat(unmarshallAll(results.Items || []))
         }
         return items
     }
