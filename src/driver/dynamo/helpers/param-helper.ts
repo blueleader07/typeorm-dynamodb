@@ -67,6 +67,8 @@ export const paramHelper = {
                 FindOptions.toAttributeNames(options),
             ExpressionAttributeValues:
                 FindOptions.toExpressionAttributeValues(options),
+            FilterExpression: FindOptions.toFilterExpression(options),
+            ProjectionExpression: FindOptions.toProjectionExpression(options),
             ScanIndexForward: options.sort !== 'DESC'
         }
         if (options.index) {

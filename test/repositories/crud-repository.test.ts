@@ -101,4 +101,45 @@ describe('crud-repository', () => {
 
         expect(updateStub.calledWith(expected)).toBe(true)
     })
+
+    it('filter', async () => {
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
+        const scanStub = sinon.stub(DynamoClient.prototype, 'scan')
+        scanStub.resolves({
+            Items: []
+        } as any)
+        await datasourceManager.open({
+            entities: [Dummy]
+        })
+        const repository = datasourceManager.getCustomRepository(DummyRepository, Dummy)
+        await repository.put({
+            id: '123',
+            adjustmentStatus: 'failed',
+            adjustmentGroupId: '123'
+        })
+        const results = await repository.findAll({
+            filter: "adjustmentStatus = 'failed'"
+        })
+
+        console.log('results', results)
+
+        const expected: any = {
+            TableName: 'dummy_t',
+            KeyConditionExpression: undefined,
+            ExpressionAttributeNames: {
+                '#adjustmentStatus': 'adjustmentStatus'
+            },
+            ExpressionAttributeValues: {
+                ':adjustmentStatus': {
+                    S: 'failed'
+                }
+            },
+            FilterExpression: '#adjustmentStatus = :adjustmentStatus',
+            ProjectionExpression: undefined,
+            ScanIndexForward: true
+        }
+
+        expect(scanStub.calledWith(expected)).toBe(true)
+    })
 })
