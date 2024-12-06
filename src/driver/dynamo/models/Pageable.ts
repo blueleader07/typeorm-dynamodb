@@ -5,6 +5,7 @@ export class Pageable {
     pageNumber: number
     pageSize: number
     sort: Sort
+    filter?: string;
     exclusiveStartKey?: string
     static DEFAULT_PAGE_NUMBER: number = 0
     static DEFAULT_PAGE_SIZE: number = 15

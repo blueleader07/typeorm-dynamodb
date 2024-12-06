@@ -23,6 +23,7 @@ export class PagingAndSortingRepository<T extends ObjectLiteral> extends DynamoR
      */
     async findPage (options: FindOptions, pageable: Pageable) {
         options.limit = isEmpty(pageable.pageSize) ? 15 : pageable.pageSize
+        options.filter = pageable.filter || options.filter
         options.exclusiveStartKey = pageable.exclusiveStartKey
             ? decode(pageable.exclusiveStartKey)
             : undefined
