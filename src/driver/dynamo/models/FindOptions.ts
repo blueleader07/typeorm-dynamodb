@@ -152,30 +152,38 @@ export class FindOptions {
 
     static toFilterExpression (options: FindOptions) {
         if (options.filter) {
-            let filterExpression = `${options.filter}`
-            const expressions = options.filter.split(/ and | or /gi).map(expression => expression.trim())
-            expressions.forEach(expression => {
-                filterExpression = containsToFilterExpression(expression)
+            const expressions = options.filter.split(/ and | or /gi) // Split by AND/OR
+            const connectors = options.filter.match(/ and | or /gi) || [] // Extract AND/OR operators
+            const processedExpressions = expressions.map(expression => {
+                let processedExpression = containsToFilterExpression(expression.trim())
                 if (!expression.toLowerCase().includes('contains(')) {
-                    const parts = splitOperators(expression)
+                    const parts = splitOperators(expression.trim())
                     if (parts.length === 2) {
                         const name = parts[0].trim()
                         const value = parts[1].trim()
                         if (value.startsWith("'")) {
                             const re = new RegExp(`${name}(?=(?:(?:[^']*'){2})*[^']*$)`)
-                            filterExpression = filterExpression.replace(re, `#${poundToUnderscore(name)}`)
+                            processedExpression = processedExpression.replace(re, `#${poundToUnderscore(name)}`)
                         } else if (value.startsWith('"')) {
                             const re = new RegExp(`${name}(?=(?:(?:[^"]*"){2})*[^"]*$)`)
-                            filterExpression = filterExpression.replace(re, `#${poundToUnderscore(name)}`)
+                            processedExpression = processedExpression.replace(re, `#${poundToUnderscore(name)}`)
                         }
-                        filterExpression = filterExpression.replace(value, `:${poundToUnderscore(name)}`)
-                        filterExpression = filterExpression.replace(/['"]/g, '')
+                        processedExpression = processedExpression.replace(value, `:${poundToUnderscore(name)}`)
+                        processedExpression = processedExpression.replace(/['"]/g, '')
                     } else {
                         throw Error(`Failed to convert filter to ExpressionAttributeValues: ${options.filter}`)
                     }
                 }
+                return processedExpression
             })
-            return filterExpression
+
+            // Combine processed expressions
+            let finalFilterExpression = processedExpressions[0]
+            for (let i = 1; i < processedExpressions.length; i++) {
+                finalFilterExpression += ` ${connectors[i - 1].trim()} ${processedExpressions[i]}`
+            }
+
+            return finalFilterExpression
         }
         return undefined
     }

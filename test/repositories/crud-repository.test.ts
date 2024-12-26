@@ -142,4 +142,94 @@ describe('crud-repository', () => {
 
         expect(scanStub.calledWith(expected)).toBe(true)
     })
+
+    it('multiple filters OR', async () => {
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
+        const scanStub = sinon.stub(DynamoClient.prototype, 'scan')
+        scanStub.resolves({
+            Items: []
+        } as any)
+        await datasourceManager.open({
+            entities: [Dummy]
+        })
+        const repository = datasourceManager.getCustomRepository(DummyRepository, Dummy)
+        await repository.put({
+            id: '123',
+            adjustmentStatus: 'failed',
+            adjustmentGroupId: '123'
+        })
+        const results = await repository.findAll({
+            filter: "adjustmentStatus = 'failed' OR adjustmentGroupId = '123'"
+        })
+
+        console.log('results', results)
+
+        const expected: any = {
+            TableName: 'dummy_t',
+            KeyConditionExpression: undefined,
+            ExpressionAttributeNames: {
+                '#adjustmentStatus': 'adjustmentStatus',
+                '#adjustmentGroupId': 'adjustmentGroupId'
+            },
+            ExpressionAttributeValues: {
+                ':adjustmentStatus': {
+                    S: 'failed'
+                },
+                ':adjustmentGroupId': {
+                    S: '123'
+                }
+            },
+            FilterExpression: '#adjustmentStatus = :adjustmentStatus OR #adjustmentGroupId = :adjustmentGroupId',
+            ProjectionExpression: undefined,
+            ScanIndexForward: true
+        }
+
+        expect(scanStub.calledWith(expected)).toBe(true)
+    })
+
+    it('multiple filters AND', async () => {
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
+        const scanStub = sinon.stub(DynamoClient.prototype, 'scan')
+        scanStub.resolves({
+            Items: []
+        } as any)
+        await datasourceManager.open({
+            entities: [Dummy]
+        })
+        const repository = datasourceManager.getCustomRepository(DummyRepository, Dummy)
+        await repository.put({
+            id: '123',
+            adjustmentStatus: 'failed',
+            adjustmentGroupId: '123'
+        })
+        const results = await repository.findAll({
+            filter: "adjustmentStatus = 'failed' AND adjustmentGroupId = '123'"
+        })
+
+        console.log('results', results)
+
+        const expected: any = {
+            TableName: 'dummy_t',
+            KeyConditionExpression: undefined,
+            ExpressionAttributeNames: {
+                '#adjustmentStatus': 'adjustmentStatus',
+                '#adjustmentGroupId': 'adjustmentGroupId'
+            },
+            ExpressionAttributeValues: {
+                ':adjustmentStatus': {
+                    S: 'failed'
+                },
+                ':adjustmentGroupId': {
+                    S: '123'
+                }
+            },
+            FilterExpression: '#adjustmentStatus = :adjustmentStatus AND #adjustmentGroupId = :adjustmentGroupId',
+            ProjectionExpression: undefined,
+            ScanIndexForward: true
+        }
+
+        expect(scanStub.calledWith(expected)).toBe(true)
+    })
 })

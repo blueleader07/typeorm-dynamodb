@@ -1,6 +1,6 @@
 {
   "name": "typeorm-dynamodb",
-  "version": "3.0.45",
+  "version": "3.0.46",
   "description": "Query a DynamoDB database with NodeJS",
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
