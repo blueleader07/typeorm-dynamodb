@@ -18,7 +18,8 @@ import {
     CreateTableInput,
     UpdateTableInput,
     UpdateTableCommand,
-    ListTablesInput
+    ListTablesInput,
+    DynamoDBClientConfigType
 } from '@aws-sdk/client-dynamodb'
 import { NodeHttpHandler } from '@smithy/node-http-handler'
 import { environmentUtils } from './utils/environment-utils'
@@ -36,7 +37,7 @@ import { getRegion } from './helpers/region-helper'
 let dynamoDBDocumentClient: DynamoDBDocumentClient
 
 export class DynamoClient {
-    getClient (): DynamoDBDocumentClient {
+    getClient (config: DynamoDBClientConfigType = {}): DynamoDBDocumentClient {
         if (!dynamoDBDocumentClient) {
             const ClientDynamoDb = PlatformTools.load('@aws-sdk/client-dynamodb')
             const LibDynamoDb = PlatformTools.load('@aws-sdk/lib-dynamodb')
@@ -45,7 +46,8 @@ export class DynamoClient {
                 endpoint: environmentUtils.getVariable('DYNAMO_ENDPOINT'),
                 requestHandler: new NodeHttpHandler({
                     requestTimeout: 10000 // <- this decreases the emfiles count, the Node.js default is 120000
-                })
+                }),
+                ...config
             })
             dynamoDBDocumentClient = LibDynamoDb.DynamoDBDocumentClient.from(client, {
                 marshallOptions: {
