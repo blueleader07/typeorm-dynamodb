@@ -84,7 +84,7 @@ export class DynamoEntityManager extends EntityManager {
     ) {
         const metadata = this.connection.getMetadata(entityClassOrName)
         const changedValues = mixin(options.setValues || {}, options.where)
-        indexedColumns(metadata, changedValues)
+        indexedColumns(metadata, changedValues, true)
         mixin(options.setValues, changedValues)
         if (options.setValues && options.setValues.id !== undefined) {
             delete options.setValues.id
