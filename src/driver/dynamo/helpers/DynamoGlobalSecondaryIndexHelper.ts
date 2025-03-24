@@ -12,20 +12,33 @@ export const buildPartitionKey = (columns: ColumnMetadata[]) => {
         .join('#')
 }
 
-const partitionKeyColumns = (columns: ColumnMetadata[], doc: ObjectLiteral) => {
+const partitionKeyColumns = (columns: ColumnMetadata[], doc: ObjectLiteral, allowPartialUpdates?: boolean) => {
     if (columns.length > 1) {
         const partitionKey = buildPartitionKey(columns)
-        doc[partitionKey] = columns.map((column) => {
-            const value = doc[column.propertyName]
-            if (value === undefined) {
-                throw new Error(`value not provided for indexed column: ${column.propertyName}`)
+        const partitionColumns = partitionKey.split('#')
+        if (allowPartialUpdates) {
+            if (hasValue(doc, partitionColumns)) {
+                doc[partitionKey] = columns.map((column) => {
+                    const value = doc[column.propertyName]
+                    if (value === undefined) {
+                        throw new Error(`value not provided for indexed column: ${column.propertyName}`)
+                    }
+                    return value
+                }).join('#')
             }
-            return value
-        }).join('#')
+        } else {
+            doc[partitionKey] = columns.map((column) => {
+                const value = doc[column.propertyName]
+                if (value === undefined) {
+                    throw new Error(`value not provided for indexed column: ${column.propertyName}`)
+                }
+                return value
+            }).join('#')
+        }
     }
 }
 
-const hasSortValue = (doc: ObjectLiteral, columns: string[]) => {
+const hasValue = (doc: ObjectLiteral, columns: string[]) => {
     if (columns && columns.length > 0) {
         for (const column of columns) {
             if (doc[column] !== undefined) {
@@ -38,7 +51,7 @@ const hasSortValue = (doc: ObjectLiteral, columns: string[]) => {
 const sortKeyColumns = (sortKey: string, doc: ObjectLiteral) => {
     const columns = sortKey.split('#')
     if (columns.length > 1) {
-        if (hasSortValue(doc, columns)) {
+        if (hasValue(doc, columns)) {
             doc[sortKey] = columns
                 .map((column) => {
                     return doc[column]
@@ -48,12 +61,12 @@ const sortKeyColumns = (sortKey: string, doc: ObjectLiteral) => {
     }
 }
 
-export const indexedColumns = (metadata: EntityMetadata, doc: any) => {
+export const indexedColumns = (metadata: EntityMetadata, doc: any, allowPartialUpdate?: boolean) => {
     const indices = metadata.indices || []
     for (let i = 0; i < indices.length; i += 1) {
         const index = indices[i]
         const columns = index.columns || []
-        partitionKeyColumns(columns, doc)
+        partitionKeyColumns(columns, doc, allowPartialUpdate)
         sortKeyColumns(index.where || '', doc)
     }
 }

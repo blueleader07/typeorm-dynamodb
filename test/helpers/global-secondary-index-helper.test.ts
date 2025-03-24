@@ -41,6 +41,50 @@ describe('global-secondary-index-helper', () => {
         expect(sortKeyColumnValue).toBe(7)
     })
 
+    it('indexedColumns partial update', async (): Promise<any> => {
+        /** given: **/
+        const dummy: any = new Dummy()
+        dummy.id = '123'
+        dummy.lineItemName = '456'
+        dummy.error = 'Something bad happened'
+
+        const metadata: any = {
+            indices: [
+                {
+                    name: 'adjustmentGroupIdIndex',
+                    columns: [
+                        {
+                            propertyName: 'adjustmentGroupId'
+                        },
+                        {
+                            propertyName: 'adjustmentStatus'
+                        }
+                    ],
+                    where: 'lineItemNumber'
+                },
+                {
+                    name: 'lineItemNameAndErrorIndex',
+                    columns: [
+                        {
+                            propertyName: 'lineItemName'
+                        },
+                        {
+                            propertyName: 'error'
+                        }
+                    ],
+                    where: 'lineItemName'
+                }
+            ]
+        }
+
+        /** when: **/
+        indexedColumns(metadata, dummy, true)
+
+        /** then: **/
+        const partitionKeyColumnValue = dummy['lineItemName#error']
+        expect(partitionKeyColumnValue).toBe('456#Something bad happened')
+    })
+
     it('indexedColumns compound sortKey', async (): Promise<any> => {
         /** given: **/
         const dummy: any = new Dummy()
