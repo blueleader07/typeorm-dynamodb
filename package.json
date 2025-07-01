@@ -1,6 +1,6 @@
 {
   "name": "typeorm-dynamodb",
-  "version": "3.0.49",
+  "version": "3.0.50",
   "description": "Query a DynamoDB database with NodeJS",
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
@@ -60,6 +60,6 @@
     "@smithy/node-http-handler": "^3"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   }
 }
