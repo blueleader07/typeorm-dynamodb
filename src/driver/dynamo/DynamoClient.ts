@@ -30,7 +30,11 @@ import {
     DynamoDBDocumentClient,
     PutCommand, UpdateCommand,
     ExecuteStatementCommandInput,
-    ExecuteStatementCommand
+    ExecuteStatementCommand,
+    TransactWriteCommand,
+    TransactGetCommand,
+    TransactWriteCommandInput,
+    TransactGetCommandInput
 } from '@aws-sdk/lib-dynamodb'
 import { getRegion } from './helpers/region-helper'
 
@@ -148,6 +152,20 @@ export class DynamoClient {
             console.log('dynamodb create table', params)
         }
         return this.getClient().send(new UpdateTableCommand(params))
+    }
+
+    transactWrite (params: TransactWriteCommandInput) {
+        if (environmentUtils.isTrue('DEBUG_DYNAMODB')) {
+            console.log('dynamodb transactWrite', params)
+        }
+        return this.getClient().send(new TransactWriteCommand(params))
+    }
+
+    transactGet (params: TransactGetCommandInput) {
+        if (environmentUtils.isTrue('DEBUG_DYNAMODB')) {
+            console.log('dynamodb transactGet', params)
+        }
+        return this.getClient().send(new TransactGetCommand(params))
     }
 }
 

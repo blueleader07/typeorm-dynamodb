@@ -21,6 +21,41 @@ import asyncPool from 'tiny-async-pool'
 import { getDocumentClient } from './DynamoClient'
 import { DataSource } from 'typeorm/data-source'
 
+// Transaction operation types
+interface TransactionOperation {
+    type: 'put' | 'delete' | 'update' | 'conditionCheck'
+    tableName: string
+    data?: any
+}
+
+interface TransactionPutOperation extends TransactionOperation {
+    type: 'put'
+    item: ObjectLiteral
+    conditionExpression?: string
+}
+
+interface TransactionDeleteOperation extends TransactionOperation {
+    type: 'delete'
+    key: ObjectLiteral
+    conditionExpression?: string
+}
+
+interface TransactionUpdateOperation extends TransactionOperation {
+    type: 'update'
+    key: ObjectLiteral
+    updateExpression: string
+    expressionAttributeValues?: ObjectLiteral
+    conditionExpression?: string
+}
+
+interface TransactionConditionCheckOperation extends TransactionOperation {
+    type: 'conditionCheck'
+    key: ObjectLiteral
+    conditionExpression: string
+}
+
+type TransactionOperationUnion = TransactionPutOperation | TransactionDeleteOperation | TransactionUpdateOperation | TransactionConditionCheckOperation
+
 class DeleteManyOptions {
     maxConcurrency: number
 }
@@ -97,9 +132,14 @@ export class DynamoQueryRunner implements QueryRunner {
 
     /**
      * Indicates if transaction is active in this query executor.
-     * Always false for DynamoDB since DynamoDB does not support transactions.
+     * Now supports DynamoDB transactions using TransactWriteItems.
      */
     isTransactionActive = false
+
+    /**
+     * Transaction buffer to store operations when a transaction is active.
+     */
+    private transactionBuffer: TransactionOperationUnion[] = []
 
     /**
      * Stores temporarily user data.
@@ -181,23 +221,49 @@ export class DynamoQueryRunner implements QueryRunner {
         keys: ObjectLiteral[],
         options?: DeleteManyOptions
     ): Promise<void> {
-        if (keys.length > 0) {
-            const batchOptions = options || { maxConcurrency: 8 }
-            const batches = dynamoBatchHelper.batch(keys)
-            await asyncPoolAll(
-                batchOptions.maxConcurrency,
-                batches,
-                (batch: any[][]) => {
-                    return batchDelete(tableName, batch)
-                }
-            )
+        if (keys.length === 0) {
+            return
         }
+
+        if (this.isTransactionActive) {
+            // Add all delete operations to transaction buffer
+            for (const key of keys) {
+                this.transactionBuffer.push({
+                    type: 'delete',
+                    tableName,
+                    key
+                } as TransactionDeleteOperation)
+            }
+            return
+        }
+
+        // Execute immediately if no transaction
+        const batchOptions = options || { maxConcurrency: 8 }
+        const batches = dynamoBatchHelper.batch(keys)
+        await asyncPoolAll(
+            batchOptions.maxConcurrency,
+            batches,
+            (batch: any[][]) => {
+                return batchDelete(tableName, batch)
+            }
+        )
     }
 
     /**
      * Delete a document on DynamoDB.
      */
     async deleteOne (tableName: string, key: ObjectLiteral): Promise<void> {
+        if (this.isTransactionActive) {
+            // Add to transaction buffer
+            this.transactionBuffer.push({
+                type: 'delete',
+                tableName,
+                key
+            } as TransactionDeleteOperation)
+            return
+        }
+
+        // Execute immediately if no transaction
         const params = {
             TableName: tableName,
             Key: key
@@ -213,17 +279,32 @@ export class DynamoQueryRunner implements QueryRunner {
         docs: ObjectLiteral[],
         options?: PutManyOptions
     ): Promise<void> {
-        if (docs.length > 0) {
-            const batchOptions = options || { maxConcurrency: 8 }
-            const batches = dynamoBatchHelper.batch(docs)
-            await asyncPoolAll(
-                batchOptions.maxConcurrency,
-                batches,
-                (batch: any[][]) => {
-                    return batchWrite(tableName, batch)
-                }
-            )
+        if (docs.length === 0) {
+            return
         }
+
+        if (this.isTransactionActive) {
+            // Add all put operations to transaction buffer
+            for (const doc of docs) {
+                this.transactionBuffer.push({
+                    type: 'put',
+                    tableName,
+                    item: doc
+                } as TransactionPutOperation)
+            }
+            return
+        }
+
+        // Execute immediately if no transaction
+        const batchOptions = options || { maxConcurrency: 8 }
+        const batches = dynamoBatchHelper.batch(docs)
+        await asyncPoolAll(
+            batchOptions.maxConcurrency,
+            batches,
+            (batch: any[][]) => {
+                return batchWrite(tableName, batch)
+            }
+        )
     }
 
     /**
@@ -233,6 +314,17 @@ export class DynamoQueryRunner implements QueryRunner {
         tableName: string,
         doc: ObjectLiteral
     ): Promise<ObjectLiteral> {
+        if (this.isTransactionActive) {
+            // Add to transaction buffer
+            this.transactionBuffer.push({
+                type: 'put',
+                tableName,
+                item: doc
+            } as TransactionPutOperation)
+            return doc
+        }
+
+        // Execute immediately if no transaction
         const params = {
             TableName: tableName,
             Item: doc
@@ -257,21 +349,126 @@ export class DynamoQueryRunner implements QueryRunner {
      * Starts transaction.
      */
     async startTransaction (): Promise<void> {
-        // transactions are not supported by DynamoDB driver, so simply don't do anything here
+        if (this.isTransactionActive) {
+            throw new TypeORMError('Transaction is already active.')
+        }
+        this.isTransactionActive = true
+        this.transactionBuffer = []
     }
 
     /**
      * Commits transaction.
      */
     async commitTransaction (): Promise<void> {
-        // transactions are not supported by DynamoDB driver, so simply don't do anything here
+        if (!this.isTransactionActive) {
+            throw new TypeORMError('No active transaction to commit.')
+        }
+
+        if (this.transactionBuffer.length === 0) {
+            // No operations to commit
+            this.isTransactionActive = false
+            this.transactionBuffer = []
+            return
+        }
+
+        if (this.transactionBuffer.length > 100) {
+            throw new TypeORMError('DynamoDB transactions support maximum 100 operations per transaction.')
+        }
+
+        try {
+            // Build TransactWriteItems request
+            const transactItems = this.transactionBuffer.map(operation => this.buildTransactItem(operation))
+
+            const params = {
+                TransactItems: transactItems
+            }
+
+            // Execute the transaction using DocumentClient
+            await getDocumentClient().transactWrite(params)
+
+            // Clear transaction state on success
+            this.isTransactionActive = false
+            this.transactionBuffer = []
+        } catch (error: any) {
+            // Keep transaction active on failure so user can retry or rollback
+            throw new TypeORMError(`Transaction failed: ${error.message || 'Unknown error'}`)
+        }
     }
 
     /**
      * Rollbacks transaction.
      */
     async rollbackTransaction (): Promise<void> {
-        // transactions are not supported by DynamoDB driver, so simply don't do anything here
+        if (!this.isTransactionActive) {
+            throw new TypeORMError('No active transaction to rollback.')
+        }
+
+        // Simply clear the transaction state - DynamoDB doesn't need explicit rollback
+        this.isTransactionActive = false
+        this.transactionBuffer = []
+    }
+
+    /**
+     * Builds a TransactWriteItem from a transaction operation.
+     */
+    private buildTransactItem (operation: TransactionOperationUnion): any {
+        switch (operation.type) {
+        case 'put': {
+            const putItem: any = {
+                Put: {
+                    TableName: operation.tableName,
+                    Item: operation.item
+                }
+            }
+            if (operation.conditionExpression) {
+                putItem.Put.ConditionExpression = operation.conditionExpression
+            }
+            return putItem
+        }
+
+        case 'delete': {
+            const deleteItem: any = {
+                Delete: {
+                    TableName: operation.tableName,
+                    Key: operation.key
+                }
+            }
+            if (operation.conditionExpression) {
+                deleteItem.Delete.ConditionExpression = operation.conditionExpression
+            }
+            return deleteItem
+        }
+
+        case 'update': {
+            const updateItem: any = {
+                Update: {
+                    TableName: operation.tableName,
+                    Key: operation.key,
+                    UpdateExpression: operation.updateExpression
+                }
+            }
+            if (operation.expressionAttributeValues) {
+                updateItem.Update.ExpressionAttributeValues = operation.expressionAttributeValues
+            }
+            if (operation.conditionExpression) {
+                updateItem.Update.ConditionExpression = operation.conditionExpression
+            }
+            return updateItem
+        }
+
+        case 'conditionCheck': {
+            return {
+                ConditionCheck: {
+                    TableName: operation.tableName,
+                    Key: operation.key,
+                    ConditionExpression: operation.conditionExpression
+                }
+            }
+        }
+
+        default:
+            throw new TypeORMError(`Unsupported transaction operation type: ${(operation as any).type}`)
+        }
     }
 
     /**
