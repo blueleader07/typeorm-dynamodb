@@ -1,3 +1,7 @@
+import {
+    initializeTransactionalContext,
+    addTransactionalDataSource
+} from 'typeorm-transactional'
 import { ObjectType } from 'typeorm/common/ObjectType'
 import { EntitySchema } from 'typeorm/entity-schema/EntitySchema'
 import {
@@ -33,6 +37,7 @@ import { CapacitorDriver } from 'typeorm/driver/capacitor/CapacitorDriver'
 import { SpannerDriver } from 'typeorm/driver/spanner/SpannerDriver'
 import { DynamoDBClientConfigType } from '@aws-sdk/client-dynamodb'
 import { DynamoClient } from '../DynamoClient'
+import { environmentUtils } from '../utils/environment-utils'
 
 let connection: any = null
 let entityManager: any = null
@@ -213,7 +218,10 @@ PlatformTools.load = function (name) {
 export class DatasourceManagerOptions {
     entities?: ((Function | string | EntitySchema))[];
     clientConfig?: DynamoDBClientConfigType;
-    synchronize?: boolean
+    synchronize?: boolean;
+    disableTransactions?: boolean;
+    /** The name to use for the transaction manager when registering with typeorm-transactional */
+    transactionManagerName?: string;
 }
 
 const DEFAULT_OPTIONS: DatasourceManagerOptions = {
@@ -221,24 +229,43 @@ const DEFAULT_OPTIONS: DatasourceManagerOptions = {
     synchronize: false
 }
 
+const TRANSACTIONS_INITIALIZED = 'TRANSACTIONS_INITIALIZED'
+
 export const datasourceManager = {
     async open (options: DatasourceManagerOptions) {
         options = commonUtils.mixin({ ...DEFAULT_OPTIONS }, options)
         if (!connection) {
+            if (!options?.disableTransactions) {
+                const transactionsInitialized = environmentUtils.getVariable(TRANSACTIONS_INITIALIZED)
+                if (!transactionsInitialized) {
+                    environmentUtils.setVariable(TRANSACTIONS_INITIALIZED, true)
+                    initializeTransactionalContext()
+                }
+            }
             const connectionOptions: any = {
                 type: 'dynamodb',
                 entities: options?.entities
             }
             connection = await new DataSource(connectionOptions).initialize()
-        }
 
-        if (options.clientConfig) {
-            new DynamoClient().getClient(options.clientConfig)
-        }
+            if (options.clientConfig) {
+                new DynamoClient().getClient(options.clientConfig)
+            }
 
-        if (options.synchronize) {
-            console.log('synchronizing database ... ')
-            await connection.synchronize()
+            if (options.synchronize) {
+                console.log('synchronizing database ... ')
+                await connection.synchronize()
+            }
+
+            if (!options?.disableTransactions) {
+                if (connection) {
+                    addTransactionalDataSource({
+                        name: options?.transactionManagerName,
+                        dataSource: connection,
+                        patch: true
+                    })
+                }
+            }
         }
 
         return connection

@@ -462,7 +462,6 @@ describe('dynamic-repository', () => {
                 ':id_adjustmentStatus': '111-222-333#failed'
             }
         }
-        expect(createTableStub.calledOnce).toBe(true)
         expect(updateStub.calledWith(expected)).toBe(true)
     })
 

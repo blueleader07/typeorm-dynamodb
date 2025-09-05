@@ -81,6 +81,34 @@ describe('datasource-manager', () => {
     }, 30000)
 })
 
+describe('localstack-transaction', () => {
+    it('should run in transaction', async () => {
+        const connection = await datasourceManager.open({ entities: [Dummy] })
+        // await connection.synchronize()
+        connection.transaction(async (transactionEntityManager: DynamoEntityManager) => {
+            const dummy1 = new Dummy()
+            dummy1.id = '123'
+            dummy1.name = 'dummy1'
+            dummy1.adjustmentGroupId = '789'
+            dummy1.adjustmentStatus = 'PROCESSED'
+            const dummy2 = new Dummy()
+            dummy2.id = '456'
+            dummy2.name = 'dummy2'
+            dummy2.adjustmentGroupId = '789'
+            dummy2.adjustmentStatus = 'PROCESSED'
+            const repository = getRepository(Dummy)
+            await repository.put(dummy1)
+            await repository.put(dummy2)
+        })
+        const repository = getRepository(Dummy)
+        const result1 = await repository.findOne('123')
+        expect(result1).not.toBe(undefined)
+        const result2 = await repository.findOne('456')
+        expect(result2).not.toBe(undefined)
+        // await repository.deleteMany([{ id: '123' }, { id: '456' }])
+    }, 30000)
+})
+
 describe('transaction-manager', () => {
     let queryRunner: DynamoQueryRunner
     let transactWriteStub: sinon.SinonStub
