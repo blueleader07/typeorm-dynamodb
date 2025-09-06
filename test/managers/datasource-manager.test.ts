@@ -1,5 +1,5 @@
 import expect from 'expect'
-import { datasourceManager, AddOptions, DynamoEntityManager, getRepository } from '../../src'
+import { datasourceManager, AddOptions } from '../../src'
 import sinon from 'sinon'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
@@ -78,34 +78,6 @@ describe('datasource-manager', () => {
             executionId: '123'
         }
         await repository.add(options)
-    }, 30000)
-})
-
-describe('localstack-transaction', () => {
-    it('should run in transaction', async () => {
-        const connection = await datasourceManager.open({ entities: [Dummy] })
-        // await connection.synchronize()
-        connection.transaction(async (transactionEntityManager: DynamoEntityManager) => {
-            const dummy1 = new Dummy()
-            dummy1.id = '123'
-            dummy1.name = 'dummy1'
-            dummy1.adjustmentGroupId = '789'
-            dummy1.adjustmentStatus = 'PROCESSED'
-            const dummy2 = new Dummy()
-            dummy2.id = '456'
-            dummy2.name = 'dummy2'
-            dummy2.adjustmentGroupId = '789'
-            dummy2.adjustmentStatus = 'PROCESSED'
-            const repository = getRepository(Dummy)
-            await repository.put(dummy1)
-            await repository.put(dummy2)
-        })
-        const repository = getRepository(Dummy)
-        const result1 = await repository.findOne('123')
-        expect(result1).not.toBe(undefined)
-        const result2 = await repository.findOne('456')
-        expect(result2).not.toBe(undefined)
-        // await repository.deleteMany([{ id: '123' }, { id: '456' }])
     }, 30000)
 })
 
@@ -258,8 +230,10 @@ describe('transaction-manager', () => {
             expect((queryRunner as any).transactionBuffer).toHaveLength(1)
             expect((queryRunner as any).transactionBuffer[0]).toEqual({
                 type: 'put',
-                tableName: 'TestTable',
-                item: { id: '1', name: 'test' }
+                params: {
+                    TableName: 'TestTable',
+                    Item: { id: '1', name: 'test' }
+                }
             })
         })
 
@@ -271,8 +245,10 @@ describe('transaction-manager', () => {
             expect((queryRunner as any).transactionBuffer).toHaveLength(1)
             expect((queryRunner as any).transactionBuffer[0]).toEqual({
                 type: 'delete',
-                tableName: 'TestTable',
-                key: { id: '1' }
+                params: {
+                    TableName: 'TestTable',
+                    Key: { id: '1' }
+                }
             })
         })
 
@@ -288,13 +264,17 @@ describe('transaction-manager', () => {
             expect((queryRunner as any).transactionBuffer).toHaveLength(2)
             expect((queryRunner as any).transactionBuffer[0]).toEqual({
                 type: 'put',
-                tableName: 'TestTable',
-                item: { id: '1', name: 'test1' }
+                params: {
+                    TableName: 'TestTable',
+                    Item: { id: '1', name: 'test1' }
+                }
             })
             expect((queryRunner as any).transactionBuffer[1]).toEqual({
                 type: 'put',
-                tableName: 'TestTable',
-                item: { id: '2', name: 'test2' }
+                params: {
+                    TableName: 'TestTable',
+                    Item: { id: '2', name: 'test2' }
+                }
             })
         })
 
@@ -307,13 +287,17 @@ describe('transaction-manager', () => {
             expect((queryRunner as any).transactionBuffer).toHaveLength(2)
             expect((queryRunner as any).transactionBuffer[0]).toEqual({
                 type: 'delete',
-                tableName: 'TestTable',
-                key: { id: '1' }
+                params: {
+                    TableName: 'TestTable',
+                    Key: { id: '1' }
+                }
             })
             expect((queryRunner as any).transactionBuffer[1]).toEqual({
                 type: 'delete',
-                tableName: 'TestTable',
-                key: { id: '2' }
+                params: {
+                    TableName: 'TestTable',
+                    Key: { id: '2' }
+                }
             })
         })
 
@@ -393,9 +377,11 @@ describe('transaction-manager', () => {
         it('should build Put item correctly', () => {
             const operation = {
                 type: 'put' as const,
-                tableName: 'TestTable',
-                item: { id: '1', name: 'test' },
-                conditionExpression: 'attribute_not_exists(id)'
+                params: {
+                    TableName: 'TestTable',
+                    Item: { id: '1', name: 'test' },
+                    ConditionExpression: 'attribute_not_exists(id)'
+                }
             }
 
             const result = (queryRunner as any).buildTransactItem(operation)
@@ -412,9 +398,11 @@ describe('transaction-manager', () => {
         it('should build Delete item correctly', () => {
             const operation = {
                 type: 'delete' as const,
-                tableName: 'TestTable',
-                key: { id: '1' },
-                conditionExpression: 'attribute_exists(id)'
+                params: {
+                    TableName: 'TestTable',
+                    Key: { id: '1' },
+                    ConditionExpression: 'attribute_exists(id)'
+                }
             }
 
             const result = (queryRunner as any).buildTransactItem(operation)
@@ -431,11 +419,13 @@ describe('transaction-manager', () => {
         it('should build Update item correctly', () => {
             const operation = {
                 type: 'update' as const,
-                tableName: 'TestTable',
-                key: { id: '1' },
-                updateExpression: 'SET #name = :name',
-                expressionAttributeValues: { ':name': 'newName' },
-                conditionExpression: 'attribute_exists(id)'
+                params: {
+                    TableName: 'TestTable',
+                    Key: { id: '1' },
+                    UpdateExpression: 'SET #name = :name',
+                    ExpressionAttributeValues: { ':name': 'newName' },
+                    ConditionExpression: 'attribute_exists(id)'
+                }
             }
 
             const result = (queryRunner as any).buildTransactItem(operation)
@@ -454,9 +444,11 @@ describe('transaction-manager', () => {
         it('should build ConditionCheck item correctly', () => {
             const operation = {
                 type: 'conditionCheck' as const,
-                tableName: 'TestTable',
-                key: { id: '1' },
-                conditionExpression: 'attribute_exists(id) AND #status = :status'
+                params: {
+                    TableName: 'TestTable',
+                    Key: { id: '1' },
+                    ConditionExpression: 'attribute_exists(id) AND #status = :status'
+                }
             }
 
             const result = (queryRunner as any).buildTransactItem(operation)

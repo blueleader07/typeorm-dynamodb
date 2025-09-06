@@ -90,7 +90,9 @@ export class DynamoEntityManager extends EntityManager {
             delete options.setValues.id
         }
         const params = paramHelper.update(metadata.tablePath, options)
-        return getDocumentClient().update(params)
+
+        // Use the query runner's updateOne method to support transactions
+        return this.dynamodbQueryRunner.updateOne(params)
     }
 
     /**

@@ -52,6 +52,15 @@ const indexedWhere = (
     return isNotEmpty(where) ? where : options.where
 }
 
+export interface UpdateExpressionParams {
+    TableName: string
+    Key: any
+    UpdateExpression: string
+    ExpressionAttributeNames: any
+    ExpressionAttributeValues: any
+    ConditionExpression?: string
+}
+
 export const paramHelper = {
     find (
         tableName: string,
@@ -82,7 +91,7 @@ export const paramHelper = {
         }
         return params
     },
-    update (tableName: string, options: UpdateExpressionOptions) {
+    update (tableName: string, options: UpdateExpressionOptions): UpdateExpressionParams {
         return {
             TableName: tableName,
             Key: options.where,

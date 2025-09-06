@@ -20,6 +20,7 @@ import { dynamoBatchHelper } from './helpers/DynamoBatchHelper'
 import asyncPool from 'tiny-async-pool'
 import { getDocumentClient } from './DynamoClient'
 import { DataSource } from 'typeorm/data-source'
+import { UpdateExpressionParams } from './helpers/param-helper'
 
 // Transaction operation types
 interface TransactionOperation {
@@ -30,28 +31,35 @@ interface TransactionOperation {
 
 interface TransactionPutOperation extends TransactionOperation {
     type: 'put'
-    item: ObjectLiteral
-    conditionExpression?: string
+    params: {
+        TableName: string
+        Item: ObjectLiteral
+        ConditionExpression?: string
+    }
 }
 
 interface TransactionDeleteOperation extends TransactionOperation {
     type: 'delete'
-    key: ObjectLiteral
-    conditionExpression?: string
+    params: {
+        TableName: string
+        Key: ObjectLiteral
+        ConditionExpression?: string
+    }
 }
 
 interface TransactionUpdateOperation extends TransactionOperation {
     type: 'update'
     key: ObjectLiteral
-    updateExpression: string
-    expressionAttributeValues?: ObjectLiteral
-    conditionExpression?: string
+    params: UpdateExpressionParams
 }
 
 interface TransactionConditionCheckOperation extends TransactionOperation {
     type: 'conditionCheck'
-    key: ObjectLiteral
-    conditionExpression: string
+    params: {
+        TableName: string,
+        Key: ObjectLiteral,
+        ConditionExpression?: string
+    }
 }
 
 type TransactionOperationUnion = TransactionPutOperation | TransactionDeleteOperation | TransactionUpdateOperation | TransactionConditionCheckOperation
@@ -230,8 +238,10 @@ export class DynamoQueryRunner implements QueryRunner {
             for (const key of keys) {
                 this.transactionBuffer.push({
                     type: 'delete',
-                    tableName,
-                    key
+                    params: {
+                        TableName: tableName,
+                        Key: key
+                    }
                 } as TransactionDeleteOperation)
             }
             return
@@ -257,8 +267,10 @@ export class DynamoQueryRunner implements QueryRunner {
             // Add to transaction buffer
             this.transactionBuffer.push({
                 type: 'delete',
-                tableName,
-                key
+                params: {
+                    TableName: tableName,
+                    Key: key
+                }
             } as TransactionDeleteOperation)
             return
         }
@@ -288,8 +300,10 @@ export class DynamoQueryRunner implements QueryRunner {
             for (const doc of docs) {
                 this.transactionBuffer.push({
                     type: 'put',
-                    tableName,
-                    item: doc
+                    params: {
+                        TableName: tableName,
+                        Item: doc
+                    }
                 } as TransactionPutOperation)
             }
             return
@@ -318,8 +332,10 @@ export class DynamoQueryRunner implements QueryRunner {
             // Add to transaction buffer
             this.transactionBuffer.push({
                 type: 'put',
-                tableName,
-                item: doc
+                params: {
+                    TableName: tableName,
+                    Item: doc
+                }
             } as TransactionPutOperation)
             return doc
         }
@@ -331,6 +347,21 @@ export class DynamoQueryRunner implements QueryRunner {
         }
         await getDocumentClient().put(params)
         return doc
+    }
+
+    /**
+     * Updates a single document in DynamoDB.
+     */
+    async updateOne (params: UpdateExpressionParams): Promise<any> {
+        if (this.isTransactionActive) {
+            // Add to transaction buffer
+            this.transactionBuffer.push({
+                type: 'update',
+                params
+            } as TransactionUpdateOperation)
+            return
+        }
+        return getDocumentClient().update(params)
     }
 
     /**
@@ -414,55 +445,26 @@ export class DynamoQueryRunner implements QueryRunner {
     private buildTransactItem (operation: TransactionOperationUnion): any {
         switch (operation.type) {
         case 'put': {
-            const putItem: any = {
-                Put: {
-                    TableName: operation.tableName,
-                    Item: operation.item
-                }
+            return {
+                Put: operation.params
             }
-            if (operation.conditionExpression) {
-                putItem.Put.ConditionExpression = operation.conditionExpression
-            }
-            return putItem
         }
 
         case 'delete': {
-            const deleteItem: any = {
-                Delete: {
-                    TableName: operation.tableName,
-                    Key: operation.key
-                }
+            return {
+                Delete: operation.params
             }
-            if (operation.conditionExpression) {
-                deleteItem.Delete.ConditionExpression = operation.conditionExpression
-            }
-            return deleteItem
         }
 
         case 'update': {
-            const updateItem: any = {
-                Update: {
-                    TableName: operation.tableName,
-                    Key: operation.key,
-                    UpdateExpression: operation.updateExpression
-                }
+            return {
+                Update: operation.params
             }
-            if (operation.expressionAttributeValues) {
-                updateItem.Update.ExpressionAttributeValues = operation.expressionAttributeValues
-            }
-            if (operation.conditionExpression) {
-                updateItem.Update.ConditionExpression = operation.conditionExpression
-            }
-            return updateItem
         }
 
         case 'conditionCheck': {
             return {
-                ConditionCheck: {
-                    TableName: operation.tableName,
-                    Key: operation.key,
-                    ConditionExpression: operation.conditionExpression
-                }
+                ConditionCheck: operation.params
             }
         }
 
