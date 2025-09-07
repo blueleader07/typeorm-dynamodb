@@ -29,7 +29,10 @@ export const dynamoAttributeHelper = {
             const keys = Object.keys(object)
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i]
-                attributeNames[`#${poundToUnderscore(key)}`] = key
+                const value = object[key]
+                if (value !== undefined) {
+                    attributeNames[`#${poundToUnderscore(key)}`] = key
+                }
             }
         }
         if (filter) {

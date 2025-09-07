@@ -31,8 +31,11 @@ export class UpdateExpressionOptions {
         const values: any = {}
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i]
-            const attributeName = key.replace(/#/g, '_')
-            values[`:${attributeName}`] = optionValues[key]
+            const value = optionValues[key]
+            if (value !== undefined) {
+                const attributeName = key.replace(/#/g, '_')
+                values[`:${attributeName}`] = optionValues[key]
+            }
         }
         return values
     }
@@ -52,6 +55,9 @@ export class UpdateExpressionOptions {
     static _toUpdateExpression (values: any, type: UpdateExpressionType) {
         if (values) {
             const commonSeparatedValues = Object.keys(values)
+                .filter((key: string) => {
+                    return values[key] !== undefined
+                })
                 .map((key) => {
                     const attributeName = key.replace(/#/g, '_')
                     switch (type) {
@@ -66,7 +72,17 @@ export class UpdateExpressionOptions {
                     }
                 })
                 .join(', ')
-            return `${type} ${commonSeparatedValues}`
+            const commaSeparatedRemoves = Object.keys(values)
+                .filter((key: string) => {
+                    return values[key] === undefined
+                })
+                .map((key) => {
+                    const attributeName = key.replace(/#/g, '_')
+                    return `${attributeName}`
+                })
+                .join(', ')
+            const removeStatement = commaSeparatedRemoves.length > 0 ? ` REMOVE ${commaSeparatedRemoves}` : ''
+            return `${type} ${commonSeparatedValues}${removeStatement}`
         }
         return ''
     }

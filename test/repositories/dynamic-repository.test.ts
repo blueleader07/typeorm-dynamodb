@@ -423,7 +423,7 @@ describe('dynamic-repository', () => {
         expect(items.length).toBe(1)
     })
     it('updateExpression', async (): Promise<any> => {
-        const createTableStub = sinon.stub(DynamoClient.prototype, 'createTable').resolves()
+        sinon.stub(DynamoClient.prototype, 'createTable').resolves()
         const updateStub = sinon.stub(DynamoClient.prototype, 'update').resolves()
 
         await open({
@@ -458,6 +458,47 @@ describe('dynamic-repository', () => {
                 ':adjustmentStatus': 'failed',
                 ':adjustmentGroupId': '444-555-666',
                 ':error': 'some error occurred',
+                ':adjustmentGroupId_adjustmentStatus': '444-555-666#failed',
+                ':id_adjustmentStatus': '111-222-333#failed'
+            }
+        }
+        expect(updateStub.calledWith(expected)).toBe(true)
+    })
+
+    it('updateExpression remove attribute', async (): Promise<any> => {
+        sinon.stub(DynamoClient.prototype, 'createTable').resolves()
+        const updateStub = sinon.stub(DynamoClient.prototype, 'update').resolves()
+
+        await open({
+            entities: [Dummy],
+            synchronize: true
+        })
+        await getRepository(Dummy).updateExpression({
+            where: {
+                id: '111-222-333'
+            },
+            setValues: {
+                adjustmentStatus: 'failed',
+                adjustmentGroupId: '444-555-666',
+                error: undefined
+            }
+        })
+
+        const expected: any = {
+            TableName: 'dummy_t',
+            Key: {
+                id: '111-222-333'
+            },
+            UpdateExpression: 'SET #adjustmentStatus = :adjustmentStatus, #adjustmentGroupId = :adjustmentGroupId, #adjustmentGroupId_adjustmentStatus = :adjustmentGroupId_adjustmentStatus, #id_adjustmentStatus = :id_adjustmentStatus REMOVE error',
+            ExpressionAttributeNames: {
+                '#adjustmentStatus': 'adjustmentStatus',
+                '#adjustmentGroupId': 'adjustmentGroupId',
+                '#adjustmentGroupId_adjustmentStatus': 'adjustmentGroupId#adjustmentStatus',
+                '#id_adjustmentStatus': 'id#adjustmentStatus'
+            },
+            ExpressionAttributeValues: {
+                ':adjustmentStatus': 'failed',
+                ':adjustmentGroupId': '444-555-666',
                 ':adjustmentGroupId_adjustmentStatus': '444-555-666#failed',
                 ':id_adjustmentStatus': '111-222-333#failed'
             }
