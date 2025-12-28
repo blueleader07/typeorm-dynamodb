@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Upgraded to ESLint 9**: Migrated from ESLint 7 to ESLint 9.39.2 with modern flat config format (`eslint.config.mjs`)
+- **Upgraded TypeScript ESLint**: Updated `@typescript-eslint/parser` and `@typescript-eslint/eslint-plugin` from 4.4.0 to 8.50.1
+- **Removed eslint-config-standard**: Removed old `eslint-config-standard` and related plugins (incompatible with ESLint 9), now using `@eslint/js` and `typescript-eslint` directly
+
 - **`deleteAll` now returns `DeleteResult`**: Updated to match TypeORM 0.3.28+ interface requirements. Returns a `DeleteResult` with the count of deleted rows instead of `void`.
   
   ```typescript
