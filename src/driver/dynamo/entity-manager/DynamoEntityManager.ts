@@ -12,6 +12,7 @@ import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils'
 import { FindOneOptions } from 'typeorm/find-options/FindOneOptions'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult'
+import { TypeORMError } from 'typeorm/error/TypeORMError'
 import { DynamoQueryRunner } from '../DynamoQueryRunner'
 import { DynamoDriver } from '../DynamoDriver'
 import { UpdateExpressionOptions } from '../models/UpdateExpressionOptions'
@@ -30,6 +31,12 @@ import { mixin, isEmpty } from '../helpers/DynamoObjectHelper'
 import { getDocumentClient } from '../DynamoClient'
 import { unmarshall } from '@aws-sdk/util-dynamodb'
 import { PagingAndSortingRepository } from '../repository/PagingAndSortingRepository'
+
+/**
+ * Function type that extracts key fields from an entity for DynamoDB operations.
+ * Takes an entity object and returns an object containing only the key fields.
+ */
+export type KeyMapper = (entity: ObjectLiteral) => ObjectLiteral
 
 // todo: we should look at the @PrimaryKey on the entity
 const DEFAULT_KEY_MAPPER = (item: any) => {
@@ -202,7 +209,7 @@ export class DynamoEntityManager extends EntityManager {
         )
         const results = await dbClient.query(params)
         const items: any = unmarshallAll(results.Items)
-        return items.length > 0 ? items[0] : undefined
+        return items.length > 0 ? items[0] : null
     }
 
     /**
@@ -224,7 +231,7 @@ export class DynamoEntityManager extends EntityManager {
         )
         const results = await dbClient.query(params)
         const items: any = unmarshallAll(results.Items)
-        return items.length > 0 ? items[0] : undefined
+        return items.length > 0 ? items[0] : null
     }
 
     /**
@@ -268,44 +275,55 @@ export class DynamoEntityManager extends EntityManager {
         }
     }
 
-    async deleteAll<Entity> (
+    /**
+     * Deletes all rows from the table, or rows matching the given options.
+     * Alias for deleteAllBy with empty options when no options provided.
+     * 
+     * @param target - The entity class or table name
+     * @param options - Optional FindOptions to filter which rows to delete (if omitted, deletes ALL rows)
+     * @param keyMapper - Optional function to extract keys from items (defaults to using primary key columns)
+     * @returns Promise<DeleteResult> with the count of deleted rows
+     */
+    override async deleteAll<Entity extends ObjectLiteral> (
         target: EntityTarget<Entity>,
-        options: FindOptions,
-        keyMapper?: any
-    ) {
-        let items = await this.scan(target, { limit: 500 })
-        while (items.length > 0) {
-            const itemIds = items.map(
-                keyMapper || this.createDefaultKeyMapper(target)
-            )
-            await this.deleteMany(target, itemIds)
-            await this.deleteAll(target, keyMapper)
-            items = await this.scan(target, { limit: 500 })
-        }
+        options?: FindOptions,
+        keyMapper?: KeyMapper
+    ): Promise<DeleteResult> {
+        return this.deleteAllBy(target, options || {}, keyMapper)
     }
 
-    deleteAllBy<Entity> (
+    /**
+     * DynamoDB-specific method to delete all rows matching the given options.
+     * Returns a DeleteResult with the count of deleted rows.
+     */
+    async deleteAllBy<Entity> (
         target: EntityTarget<Entity>,
         options: FindOptions,
-        keyMapper?: any
-    ) {
+        keyMapper?: KeyMapper
+    ): Promise<DeleteResult> {
         options.limit = options.limit || 500
-        return this.deleteQueryBatch(target, options, keyMapper)
+        const deletedCount = await this.deleteQueryBatch(target, options, keyMapper)
+        return {
+            raw: [],
+            affected: deletedCount
+        } as DeleteResult
     }
 
     async deleteQueryBatch<Entity> (
         target: EntityTarget<Entity>,
         options: FindOptions,
-        keyMapper?: any
-    ) {
+        keyMapper?: KeyMapper
+    ): Promise<number> {
         const items: any[] = await this.find(target, options)
         if (items.length > 0) {
             const metadata = this.connection.getMetadata(target)
             keyMapper = keyMapper || DEFAULT_KEY_MAPPER
             const keys: any[] = items.map(keyMapper)
             await this.deleteMany(metadata.tablePath, keys)
-            await this.deleteQueryBatch(target, options, keyMapper)
+            const nextCount = await this.deleteQueryBatch(target, options, keyMapper)
+            return items.length + nextCount
         }
+        return 0
     }
 
     /**

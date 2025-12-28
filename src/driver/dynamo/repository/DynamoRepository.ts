@@ -8,7 +8,7 @@ import { DeepPartial } from 'typeorm/common/DeepPartial'
 import { FindOneOptions } from 'typeorm/find-options/FindOneOptions'
 import { Repository } from 'typeorm/repository/Repository'
 import { DynamoReadStream } from '../DynamoReadStream'
-import { DynamoEntityManager } from '../entity-manager/DynamoEntityManager'
+import { DynamoEntityManager, KeyMapper } from '../entity-manager/DynamoEntityManager'
 import { DynamoQueryRunner } from '../DynamoQueryRunner'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { AddOptions } from '../models/AddOptions'
@@ -143,11 +143,11 @@ export class DynamoRepository<
         return this.manager.deleteMany(this.metadata.tableName, keys)
     }
 
-    async deleteAll (keyMapper?: any) {
-        return this.manager.deleteAll(this.metadata.tableName, keyMapper)
+    async deleteAll (keyMapper?: KeyMapper) {
+        return this.manager.deleteAll(this.metadata.tableName, {}, keyMapper)
     }
 
-    deleteAllBy (options: FindOptions, keyMapper?: any) {
+    deleteAllBy (options: FindOptions, keyMapper?: KeyMapper) {
         return this.manager.deleteAllBy(
             this.metadata.tableName,
             options,
@@ -155,7 +155,7 @@ export class DynamoRepository<
         )
     }
 
-    async deleteQueryBatch (options: FindOptions, keyMapper?: any) {
+    async deleteQueryBatch (options: FindOptions, keyMapper?: KeyMapper) {
         return this.manager.deleteQueryBatch(
             this.metadata.tableName,
             options,

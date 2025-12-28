@@ -483,6 +483,16 @@ export class DynamoQueryRunner implements QueryRunner {
     }
 
     /**
+     * Tagged template function for executing SQL queries.
+     * Not supported by DynamoDB driver.
+     */
+    sql<T = any> (strings: TemplateStringsArray, ...values: unknown[]): Promise<T> {
+        throw new TypeORMError(
+            'Executing SQL query is not supported by DynamoDB driver.'
+        )
+    }
+
+    /**
      * Returns raw data stream.
      */
     // stream (query: string, parameters?: any[], onEnd?: Function, onError?: Function): Promise<ReadStream> {
