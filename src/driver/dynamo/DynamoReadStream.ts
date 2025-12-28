@@ -1,8 +1,9 @@
 import { Stream } from 'stream'
+import { ObjectLiteral } from 'typeorm/common/ObjectLiteral'
 import { ScanOptions } from './models/ScanOptions'
 import { DynamoRepository } from './repository/DynamoRepository'
 
-export class DynamoReadStream<Entity> extends Stream.Readable {
+export class DynamoReadStream<Entity extends ObjectLiteral> extends Stream.Readable {
     repository: DynamoRepository<Entity>
     options: ScanOptions
 

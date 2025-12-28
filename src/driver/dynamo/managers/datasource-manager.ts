@@ -3,6 +3,7 @@ import {
     addTransactionalDataSource
 } from 'typeorm-transactional'
 import { ObjectType } from 'typeorm/common/ObjectType'
+import { ObjectLiteral } from 'typeorm/common/ObjectLiteral'
 import { EntitySchema } from 'typeorm/entity-schema/EntitySchema'
 import {
     DataSource, EntityManager,
@@ -285,7 +286,7 @@ export const datasourceManager = {
         return new customRepository(customEntity, connection.createEntityManager())
     },
 
-    getRepository<Entity> (target: EntityTarget<Entity>, name?: string): PagingAndSortingRepository<Entity> {
+    getRepository<Entity extends ObjectLiteral> (target: EntityTarget<Entity>, name?: string): PagingAndSortingRepository<Entity> {
         return datasourceManager.getConnection(name).getRepository(target)
     },
 
@@ -306,7 +307,7 @@ export const getCustomRepository = <T, Entity> (customRepository: { new(a: any, 
     return datasourceManager.getCustomRepository(customRepository, customEntity)
 }
 
-export const getRepository = <Entity> (target: EntityTarget<Entity>, name?: string): PagingAndSortingRepository<Entity> => {
+export const getRepository = <Entity extends ObjectLiteral> (target: EntityTarget<Entity>, name?: string): PagingAndSortingRepository<Entity> => {
     return datasourceManager.getRepository(target, name)
 }
 
