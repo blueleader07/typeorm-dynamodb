@@ -1,0 +1,95 @@
+name: Publish to NPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      npm-tag:
+        description: 'NPM tag (latest, beta, alpha)'
+        required: false
+        default: 'latest'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Bump version
+        id: version
+        run: |
+          OLD_VERSION=$(node -p "require('./package.json').version")
+          npm version ${{ inputs.version }} -m "chore: release v%s"
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "old_version=$OLD_VERSION" >> $GITHUB_OUTPUT
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to NPM
+        run: npm publish --tag ${{ inputs.npm-tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push changes
+        run: |
+          git push origin main
+          git push origin ${{ steps.version.outputs.tag }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ steps.version.outputs.tag }} \
+            --title "Release ${{ steps.version.outputs.tag }}" \
+            --generate-notes
+
+      - name: Deployment Summary
+        run: |
+          echo "# 📦 NPM Package Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Info | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 📦 Package | \`typeorm-dynamodb\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔖 Old Version | \`${{ steps.version.outputs.old_version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🎯 New Version | **\`${{ steps.version.outputs.new_version }}\`** |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏷️  NPM Tag | \`${{ inputs.npm-tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔗 NPM | [View on NPM](https://www.npmjs.com/package/typeorm-dynamodb) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully published to NPM and created GitHub release!" >> $GITHUB_STEP_SUMMARY
