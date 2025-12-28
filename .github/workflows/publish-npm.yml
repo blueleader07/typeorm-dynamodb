@@ -40,7 +40,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20.x'
+          node-version: '22.x'
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
           # NPM Trusted Publishing (OIDC) - no token needed!
