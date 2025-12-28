@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write  # Required for NPM provenance (trusted publishing)
 
 jobs:
   publish:
@@ -63,7 +64,7 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM
-        run: npm publish --tag ${{ inputs.npm-tag }}
+        run: npm publish --provenance --access public --tag ${{ inputs.npm-tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

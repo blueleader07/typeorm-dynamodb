@@ -94,12 +94,14 @@ npm run clean
 - Run all tests
 - Bump version in package.json
 - Build the package
-- Publish to NPM
+- Publish to NPM with provenance (trusted publishing)
 - Create git tag and GitHub release
 - Push changes back to main branch
 
 **Required Secret:**
 - `NPM_TOKEN` - NPM authentication token (set in GitHub repo secrets)
+  - **Recommended:** Use NPM Trusted Publishing (OIDC) instead of long-lived tokens
+  - Workflow includes `--provenance` flag for supply chain security
 
 ### Semantic Versioning
 - **Patch** (3.0.54 → 3.0.55): Bug fixes, no breaking changes
