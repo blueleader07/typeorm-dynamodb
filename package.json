@@ -58,6 +58,6 @@
     "@smithy/node-http-handler": "^3"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=18"
   }
 }
