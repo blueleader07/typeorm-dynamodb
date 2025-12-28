@@ -1,7 +1,7 @@
 const removeSpaces = (text: string) => {
     let inside = 0
     const s = text.replace(/\n/g, '')
-    // eslint-disable-next-line no-return-assign
+     
     return s.replace(/ +|"/g, (m: string) => m === '"' ? (inside ^= 1, '"') : inside ? m : '')
 }
 
@@ -20,7 +20,7 @@ export const parseAnnotations = (file: string, ...names: string[]) => {
         }
     })
     annotations = annotations.map(annotation => {
-        // eslint-disable-next-line no-eval
+         
         return eval('(' + annotation + ')')
     })
     return annotations.filter(annotation => {

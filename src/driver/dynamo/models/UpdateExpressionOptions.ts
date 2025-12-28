@@ -2,13 +2,13 @@ import { dynamoAttributeHelper } from '../helpers/DynamoAttributeHelper'
 import { mixin } from '../helpers/DynamoObjectHelper'
 
 export enum UpdateExpressionType {
-    // eslint-disable-next-line no-unused-vars
+     
     ADD = 'ADD',
-    // eslint-disable-next-line no-unused-vars
+     
     DELETE = 'DELETE',
-    // eslint-disable-next-line no-unused-vars
+     
     REMOVE = 'REMOVE',
-    // eslint-disable-next-line no-unused-vars
+     
     SET = 'SET',
 }
 

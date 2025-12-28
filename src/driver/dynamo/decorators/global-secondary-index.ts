@@ -17,7 +17,7 @@ export function GlobalSecondaryIndex (options: GlobalSecondaryIndexOptions): Cla
     options.sortKey = options.sortKey || []
     const name = options.name
     const partitionColumns = Array.isArray(options.partitionKey) ? options.partitionKey : [options.partitionKey]
-    return function (clsOrObject: Function|Object, propertyName?: string | symbol) {
+    return function (clsOrObject: Function|object, propertyName?: string | symbol) {
         getMetadataArgsStorage().indices.push({
             target: propertyName ? clsOrObject.constructor : clsOrObject as Function,
             name: name,
