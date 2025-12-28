@@ -45,6 +45,9 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           # NPM Trusted Publishing (OIDC) - no token needed!
 
+      - name: Update npm to latest version for OIDC support
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
 
