@@ -45,7 +45,7 @@
     "typescript-eslint": "^8.50.1"
   },
   "dependencies": {
-    "bignumber.js": "^9.0.1",
+    "bignumber.js": "^10.0.2",
     "tiny-async-pool": "^2.1.0",
     "typeorm": "^0.3.15",
     "typeorm-transactional": "^0.5.0",
