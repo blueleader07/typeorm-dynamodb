@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `findAll({ limit })` now continues across DynamoDB pages until the requested number of items has been collected instead of treating `limit` as only the first request size.
 - Added a unit test covering multi-page `findAll({ limit })` behavior to verify the method stops paging once the requested item count is reached.
 
+### Changed
+
+- **Upgraded CI to Node 24**: Updated publish workflow to use Node 24 (which bundles npm 11.5.1+), required for npm Trusted Publishing (OIDC). CI matrix updated from `[18.x, 20.x, 22.x]` to `[20.x, 22.x, 24.x]`.
+- **Removed manual npm upgrade step**: The `npm install -g npm@latest` step in the publish workflow was causing `MODULE_NOT_FOUND` errors on Node 22 runners; it is no longer needed with Node 24.
+- **Simplified publish command**: Removed `--provenance` flag from `npm publish` — provenance attestations are now generated automatically by npm Trusted Publishing.
+
 ## [3.1.0] - 2025-12-28
 
 ### Changed
