@@ -31,16 +31,23 @@ const removeLeadingAndTrailingQuotes = (text: string) => {
     return text.replace(/(^['"]|['"]$)/g, '')
 }
 
-const containsToFilterExpression = (expression: string) => {
+const nextPlaceholder = (name: string, counters: Record<string, number>) => {
+    const base = `:${poundToUnderscore(name)}`
+    counters[base] = (counters[base] || 0) + 1
+    return counters[base] === 1 ? base : `${base}_${counters[base]}`
+}
+
+const containsToFilterExpression = (expression: string, placeholder?: string) => {
     if (expression && expression.toLowerCase().includes('contains(')) {
         const haystack = expression.replace(/^contains\(/gi, '').replace(/\)$/, '')
         const parts = haystack.split(',')
         if (parts.length === 2) {
             const name = parts[0].trim()
             const value = parts[1].trim()
+            const valuePlaceholder = placeholder || `:${poundToUnderscore(name)}`
             const re = new RegExp(`${name}(?=(?:(?:[^']*'){2})*[^']*$)`)
             let newExpression = haystack.replace(re, `#${poundToUnderscore(name)}`)
-            newExpression = newExpression.replace(value, `:${poundToUnderscore(name)}`)
+            newExpression = newExpression.replace(value, valuePlaceholder)
             return `contains(${newExpression})`
         } else {
             throw Error(`Failed to parse contains to ExpressionAttributeNames: ${expression}`)
@@ -49,14 +56,15 @@ const containsToFilterExpression = (expression: string) => {
     return expression
 }
 
-const containsToAttributeValues = (expression: string, values: any) => {
+const containsToAttributeValues = (expression: string, values: any, placeholder?: string) => {
     if (expression && expression.toLowerCase().includes('contains(')) {
         const haystack = expression.replace(/^contains\(/gi, '').replace(/\)$/, '')
         const parts = haystack.split(',')
         if (parts.length === 2) {
             const name = parts[0].trim()
             const value = parts[1].trim().replace(/'/g, '')
-            values[`:${poundToUnderscore(name)}`] = marshall(removeLeadingAndTrailingQuotes(value))
+            const valuePlaceholder = placeholder || `:${poundToUnderscore(name)}`
+            values[valuePlaceholder] = marshall(removeLeadingAndTrailingQuotes(value))
         } else {
             throw Error(`Failed to parse contains to ExpressionAttributeNames: ${expression}`)
         }
@@ -132,15 +140,21 @@ export class FindOptions {
             }
         }
         if (findOptions.filter) {
+            const filterPlaceholderCounters: Record<string, number> = {}
             const expressions = findOptions.filter.split(/ and | or /gi).map(expression => expression.trim())
             expressions.forEach(expression => {
-                expression = containsToAttributeValues(expression, values)
+                const placeholder = nextPlaceholder(
+                    expression.toLowerCase().includes('contains(')
+                        ? expression.replace(/^contains\(/i, '').split(',')[0].trim()
+                        : splitOperators(expression)[0].trim(),
+                    filterPlaceholderCounters
+                )
+                expression = containsToAttributeValues(expression, values, placeholder)
                 if (!expression.toLowerCase().includes('contains(')) {
                     const parts = splitOperators(expression)
                     if (parts.length === 2) {
-                        const name = parts[0].trim()
                         const value = parts[1].trim()
-                        values[`:${poundToUnderscore(name)}`] = marshall(removeLeadingAndTrailingQuotes(value))
+                        values[placeholder] = marshall(removeLeadingAndTrailingQuotes(value))
                     } else {
                         throw Error(`Failed to convert filter to ExpressionAttributeValues: ${findOptions.filter}`)
                     }
@@ -152,10 +166,24 @@ export class FindOptions {
 
     static toFilterExpression (options: FindOptions) {
         if (options.filter) {
+            const filterPlaceholderCounters: Record<string, number> = {}
             const expressions = options.filter.split(/ and | or /gi) // Split by AND/OR
             const connectors = options.filter.match(/ and | or /gi) || [] // Extract AND/OR operators
             const processedExpressions = expressions.map(expression => {
-                let processedExpression = containsToFilterExpression(expression.trim())
+                const trimmedExpression = expression.trim()
+                let placeholderName = ''
+                if (trimmedExpression.toLowerCase().includes('contains(')) {
+                    placeholderName = trimmedExpression.replace(/^contains\(/i, '').split(',')[0].trim()
+                } else {
+                    const parts = splitOperators(trimmedExpression)
+                    if (parts.length === 2) {
+                        placeholderName = parts[0].trim()
+                    } else {
+                        throw Error(`Failed to convert filter to ExpressionAttributeValues: ${options.filter}`)
+                    }
+                }
+                const placeholder = nextPlaceholder(placeholderName, filterPlaceholderCounters)
+                let processedExpression = containsToFilterExpression(trimmedExpression, placeholder)
                 if (!expression.toLowerCase().includes('contains(')) {
                     const parts = splitOperators(expression.trim())
                     if (parts.length === 2) {
@@ -168,7 +196,7 @@ export class FindOptions {
                             const re = new RegExp(`${name}(?=(?:(?:[^"]*"){2})*[^"]*$)`)
                             processedExpression = processedExpression.replace(re, `#${poundToUnderscore(name)}`)
                         }
-                        processedExpression = processedExpression.replace(value, `:${poundToUnderscore(name)}`)
+                        processedExpression = processedExpression.replace(value, placeholder)
                         processedExpression = processedExpression.replace(/['"]/g, '')
                     } else {
                         throw Error(`Failed to convert filter to ExpressionAttributeValues: ${options.filter}`)

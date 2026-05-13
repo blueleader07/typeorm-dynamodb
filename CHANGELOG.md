@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `findAll({ limit })` now continues across DynamoDB pages until the requested number of items has been collected instead of treating `limit` as only the first request size.
 - Added a unit test covering multi-page `findAll({ limit })` behavior to verify the method stops paging once the requested item count is reached.
+- Fixed filter placeholder collisions in `FindOptions` when the same field appears multiple times in a `filter` expression (for example `field = 'a' OR field = 'b'`), by generating unique expression attribute value aliases per occurrence.
+- Updated filter parsing for `contains(...)` and standard comparison filters so `toFilterExpression()` and `toExpressionAttributeValues()` stay aligned on the same generated placeholder names.
+- Added regression tests for duplicate-field filter aliases and kept real DynamoDB integration validation in `crud-repository` tests behind the `FLOCI_INTEGRATION=true` flag.
 
 ### Changed
 

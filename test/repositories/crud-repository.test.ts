@@ -1,8 +1,27 @@
 import expect from 'expect'
 import { DummyRepository } from './dummy-repository'
-import { datasourceManager, DynamoClient } from '../../src'
+import { datasourceManager, DynamoClient, getRepository } from '../../src'
 import { Dummy } from '../entities/dummy'
 import sinon from 'sinon'
+
+const describeFloci = process.env.FLOCI_INTEGRATION === 'true' ? describe : describe.skip
+
+const seedDummy = async (
+    id: string,
+    adjustmentGroupId: string,
+    adjustmentStatus: string
+) => {
+    const repository = getRepository(Dummy)
+    const entity = new Dummy()
+    entity.id = id
+    entity.adjustmentGroupId = adjustmentGroupId
+    entity.adjustmentStatus = adjustmentStatus
+    entity.lineItemNumber = 1
+    entity.lineItemName = 'line-item'
+    entity.error = 'none'
+    entity.created = new Date().toISOString()
+    await repository.put(entity)
+}
 
 describe('crud-repository', () => {
     afterEach(() => {
@@ -231,5 +250,57 @@ describe('crud-repository', () => {
         }
 
         expect(scanStub.calledWith(expected)).toBe(true)
+    })
+})
+
+describeFloci('crud-repository floci integration', () => {
+    beforeAll(async () => {
+        process.env.DYNAMO_ENDPOINT = process.env.DYNAMO_ENDPOINT || 'http://localhost:4566'
+        process.env.DYNAMO_REGION = process.env.DYNAMO_REGION || 'us-east-1'
+        process.env.AWS_REGION = process.env.AWS_REGION || 'us-east-1'
+        process.env.AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || 'test'
+        process.env.AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || 'test'
+
+        await datasourceManager.open({
+            entities: [Dummy],
+            synchronize: true,
+            clientConfig: {
+                endpoint: process.env.DYNAMO_ENDPOINT,
+                region: process.env.AWS_REGION,
+                credentials: {
+                    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+                }
+            }
+        })
+    })
+
+    it('executes real query path for findOne', async () => {
+        const id = `floci-query-${Date.now()}`
+        await seedDummy(id, 'floci-group-query', 'floci-status-query')
+
+        const repository = getRepository(Dummy)
+        const item = await repository.findOne(id)
+
+        expect(item).toBeDefined()
+        expect(item?.id).toBe(id)
+    })
+
+    it('returns both rows for same-field OR filter (bug repro against real DynamoDB)', async () => {
+        const groupId = `floci-group-${Date.now()}`
+        const statusA = `floci-status-a-${Date.now()}`
+        const statusB = `floci-status-b-${Date.now()}`
+
+        await seedDummy(`${groupId}-1`, groupId, statusA)
+        await seedDummy(`${groupId}-2`, groupId, statusB)
+
+        const repository = getRepository(Dummy)
+        const items = await repository.findAll({
+            filter: `adjustmentStatus = '${statusA}' or adjustmentStatus = '${statusB}'`
+        })
+
+        const statuses = items.map((item: any) => item.adjustmentStatus)
+        expect(statuses).toContain(statusA)
+        expect(statuses).toContain(statusB)
     })
 })
