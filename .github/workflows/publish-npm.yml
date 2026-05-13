@@ -49,8 +49,10 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
-          # NPM Trusted Publishing (OIDC) - no token needed!
+          # Note: registry-url is intentionally omitted so npm fetches a fresh
+          # OIDC token at publish time (setup-node pre-fetched tokens expire
+          # before the publish step runs). npm 9.5+ handles OIDC natively via
+          # ACTIONS_ID_TOKEN_REQUEST_URL when id-token: write is set.
 
       - name: Install dependencies
         run: npm ci
