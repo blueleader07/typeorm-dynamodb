@@ -47,12 +47,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22.x'
+          node-version: '24.x'  # Node 24 ships with npm 11.5.1+ required for trusted publishing
           cache: 'npm'
-          # Note: registry-url is intentionally omitted so npm fetches a fresh
-          # OIDC token at publish time (setup-node pre-fetched tokens expire
-          # before the publish step runs). npm 9.5+ handles OIDC natively via
-          # ACTIONS_ID_TOKEN_REQUEST_URL when id-token: write is set.
+          registry-url: 'https://registry.npmjs.org'  # Required for OIDC trusted publishing
 
       - name: Install dependencies
         run: npm ci
@@ -74,8 +71,9 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM
-        run: npm publish --provenance --access public --tag ${{ inputs.npm-tag }}
-        # No env needed - uses OIDC token automatically via id-token: write permission
+        # Trusted publishing: npm 11.5.1+ (bundled with Node 24) authenticates via OIDC
+        # automatically. No NODE_AUTH_TOKEN needed. Provenance is auto-generated.
+        run: npm publish --access public --tag ${{ inputs.npm-tag }}
 
       - name: Push changes
         run: |
