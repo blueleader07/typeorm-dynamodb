@@ -133,7 +133,10 @@ export class DynamoEntityManager extends EntityManager {
         options?: FindOptions
     ): Promise<Entity[]> {
         options = options || {}
-        delete options.limit
+        const limit = options.limit
+        if (limit !== undefined && limit <= 0) {
+            return []
+        }
         const dbClient = getDocumentClient()
         const metadata = this.connection.getMetadata(entityClassOrName)
         const params = paramHelper.find(
@@ -141,17 +144,30 @@ export class DynamoEntityManager extends EntityManager {
             options,
             metadata.indices
         )
+        let remaining = limit
         let items: any[] = []
         let results = isEmpty(options.where)
             ? await dbClient.scan(params)
             : await dbClient.query(params)
-        items = items.concat(unmarshallAll(results.Items))
-        while (results.LastEvaluatedKey) {
+        items = items.concat(unmarshallAll(results.Items || []))
+        if (remaining !== undefined) {
+            remaining -= (results.Items || []).length
+        }
+        while (
+            results.LastEvaluatedKey &&
+            (remaining === undefined || remaining > 0)
+        ) {
             params.ExclusiveStartKey = results.LastEvaluatedKey
+            if (remaining !== undefined) {
+                params.Limit = remaining
+            }
             results = isEmpty(options.where)
                 ? await dbClient.scan(params)
                 : await dbClient.query(params)
             items = items.concat(unmarshallAll(results.Items || []))
+            if (remaining !== undefined) {
+                remaining -= (results.Items || []).length
+            }
         }
         return items
     }

@@ -199,6 +199,65 @@ describe('dynamic-repository', () => {
         expect(scanStub.calledOnce).toBe(true)
         expect(items.length).toBe(1)
     })
+
+    it('findAll limit stops paging after reaching limit', async (): Promise<any> => {
+        await open({
+            entities: [Dummy],
+            synchronize: true
+        })
+        const repository = getRepository(Dummy)
+
+        const item1 = new Dummy()
+        item1.id = '123'
+        item1.name = 'some-dummy-name-1'
+        item1.adjustmentGroupId = '1'
+        item1.adjustmentStatus = 'processed'
+
+        const item2 = new Dummy()
+        item2.id = '124'
+        item2.name = 'some-dummy-name-2'
+        item2.adjustmentGroupId = '1'
+        item2.adjustmentStatus = 'processed'
+
+        const item3 = new Dummy()
+        item3.id = '125'
+        item3.name = 'some-dummy-name-3'
+        item3.adjustmentGroupId = '1'
+        item3.adjustmentStatus = 'processed'
+
+        const capturedParams: any[] = []
+        const scanResponses = [
+            {
+                Items: [marshall(item1, { convertClassInstanceToMap: true })],
+                LastEvaluatedKey: { id: '123' }
+            },
+            {
+                Items: [marshall(item2, { convertClassInstanceToMap: true })],
+                LastEvaluatedKey: { id: '124' }
+            },
+            {
+                Items: [marshall(item3, { convertClassInstanceToMap: true })]
+            }
+        ]
+        const scanStub = sinon.stub(DynamoClient.prototype, 'scan').callsFake(async (params: any) => {
+            capturedParams.push(JSON.parse(JSON.stringify(params)))
+            return scanResponses[capturedParams.length - 1] as any
+        })
+
+        const putStub = sinon.stub(DynamoClient.prototype, 'put')
+        putStub.resolves()
+
+        await repository.put(item1)
+
+        const items = await repository.findAll({ limit: 2 })
+
+        expect(putStub.calledOnce).toBe(true)
+        expect(scanStub.calledTwice).toBe(true)
+        expect(capturedParams[0].Limit).toBe(2)
+        expect(capturedParams[1].Limit).toBe(1)
+        expect(items.length).toBe(2)
+    })
+
     it('findAll index', async (): Promise<any> => {
         await open({
             entities: [Dummy],
