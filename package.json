@@ -47,7 +47,7 @@
   "dependencies": {
     "bignumber.js": "^9.0.1",
     "tiny-async-pool": "^2.1.0",
-    "typeorm": "^0.3.15",
+    "typeorm": "^1.0.0",
     "typeorm-transactional": "^0.5.0",
     "uuid": "^9.0.1"
   },
