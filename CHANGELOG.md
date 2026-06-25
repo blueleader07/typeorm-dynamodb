@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed filter placeholder collisions in `FindOptions` when the same field appears multiple times in a `filter` expression (for example `field = 'a' OR field = 'b'`), by generating unique expression attribute value aliases per occurrence.
 - Updated filter parsing for `contains(...)` and standard comparison filters so `toFilterExpression()` and `toExpressionAttributeValues()` stay aligned on the same generated placeholder names.
 - Added regression tests for duplicate-field filter aliases and kept real DynamoDB integration validation in `crud-repository` tests behind the `FLOCI_INTEGRATION=true` flag.
+- Fixed `FindOptions` parsing for parenthesized filter groups (for example `(formId = 'a' OR formId = 'b') AND status = 'OPEN'`) so generated regex patterns no longer fail and expression attribute values remain valid.
+- Escaped dynamic field-name regex input in filter conversion to prevent malformed-pattern runtime errors when special characters appear in parsed tokens.
+- Added regression tests for parenthesized OR groups combined with AND, including multiple parenthesized groups in one filter expression.
 
 ### Changed
 

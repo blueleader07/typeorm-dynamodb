@@ -32,4 +32,35 @@ describe('FindOptions', () => {
         expect(() => FindOptions.toKeyConditionExpression(options))
             .toThrow('Operator "in" not supported')
     })
+
+    it('supports parenthesized OR group combined with AND in filters', () => {
+        const options = new FindOptions()
+        options.filter = "(formId = 'form-alpha' or formId = 'form-beta') and status = 'OPEN'"
+
+        const filterExpression = FindOptions.toFilterExpression(options)
+        const expressionAttributeValues = FindOptions.toExpressionAttributeValues(options)
+
+        expect(filterExpression).toBe('(#formId = :formId or #formId = :formId_2) and #status = :status')
+        expect(expressionAttributeValues).toEqual({
+            ':formId': { S: 'form-alpha' },
+            ':formId_2': { S: 'form-beta' },
+            ':status': { S: 'OPEN' }
+        })
+    })
+
+    it('supports multiple parenthesized OR groups joined by AND', () => {
+        const options = new FindOptions()
+        options.filter = "(formId = 'form-alpha' or formId = 'form-beta') and (status = 'OPEN' or status = 'REVIEW')"
+
+        const filterExpression = FindOptions.toFilterExpression(options)
+        const expressionAttributeValues = FindOptions.toExpressionAttributeValues(options)
+
+        expect(filterExpression).toBe('(#formId = :formId or #formId = :formId_2) and (#status = :status or #status = :status_2)')
+        expect(expressionAttributeValues).toEqual({
+            ':formId': { S: 'form-alpha' },
+            ':formId_2': { S: 'form-beta' },
+            ':status': { S: 'OPEN' },
+            ':status_2': { S: 'REVIEW' }
+        })
+    })
 })

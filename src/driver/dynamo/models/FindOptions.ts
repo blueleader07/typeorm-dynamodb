@@ -31,6 +31,14 @@ const removeLeadingAndTrailingQuotes = (text: string) => {
     return text.replace(/(^['"]|['"]$)/g, '')
 }
 
+const stripEdgeParentheses = (text: string) => {
+    return text.trim().replace(/^\(+/, '').replace(/\)+$/, '').trim()
+}
+
+const escapeRegExp = (text: string) => {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 const nextPlaceholder = (name: string, counters: Record<string, number>) => {
     const base = `:${poundToUnderscore(name)}`
     counters[base] = (counters[base] || 0) + 1
@@ -42,10 +50,10 @@ const containsToFilterExpression = (expression: string, placeholder?: string) =>
         const haystack = expression.replace(/^contains\(/gi, '').replace(/\)$/, '')
         const parts = haystack.split(',')
         if (parts.length === 2) {
-            const name = parts[0].trim()
+            const name = stripEdgeParentheses(parts[0])
             const value = parts[1].trim()
             const valuePlaceholder = placeholder || `:${poundToUnderscore(name)}`
-            const re = new RegExp(`${name}(?=(?:(?:[^']*'){2})*[^']*$)`)
+            const re = new RegExp(`${escapeRegExp(name)}(?=(?:(?:[^']*'){2})*[^']*$)`)
             let newExpression = haystack.replace(re, `#${poundToUnderscore(name)}`)
             newExpression = newExpression.replace(value, valuePlaceholder)
             return `contains(${newExpression})`
@@ -61,7 +69,7 @@ const containsToAttributeValues = (expression: string, values: any, placeholder?
         const haystack = expression.replace(/^contains\(/gi, '').replace(/\)$/, '')
         const parts = haystack.split(',')
         if (parts.length === 2) {
-            const name = parts[0].trim()
+            const name = stripEdgeParentheses(parts[0])
             const value = parts[1].trim().replace(/'/g, '')
             const valuePlaceholder = placeholder || `:${poundToUnderscore(name)}`
             values[valuePlaceholder] = marshall(removeLeadingAndTrailingQuotes(value))
@@ -145,15 +153,15 @@ export class FindOptions {
             expressions.forEach(expression => {
                 const placeholder = nextPlaceholder(
                     expression.toLowerCase().includes('contains(')
-                        ? expression.replace(/^contains\(/i, '').split(',')[0].trim()
-                        : splitOperators(expression)[0].trim(),
+                        ? stripEdgeParentheses(expression.replace(/^contains\(/i, '').split(',')[0])
+                        : stripEdgeParentheses(splitOperators(expression)[0]),
                     filterPlaceholderCounters
                 )
                 expression = containsToAttributeValues(expression, values, placeholder)
                 if (!expression.toLowerCase().includes('contains(')) {
                     const parts = splitOperators(expression)
                     if (parts.length === 2) {
-                        const value = parts[1].trim()
+                        const value = stripEdgeParentheses(parts[1])
                         values[placeholder] = marshall(removeLeadingAndTrailingQuotes(value))
                     } else {
                         throw Error(`Failed to convert filter to ExpressionAttributeValues: ${findOptions.filter}`)
@@ -173,11 +181,11 @@ export class FindOptions {
                 const trimmedExpression = expression.trim()
                 let placeholderName = ''
                 if (trimmedExpression.toLowerCase().includes('contains(')) {
-                    placeholderName = trimmedExpression.replace(/^contains\(/i, '').split(',')[0].trim()
+                    placeholderName = stripEdgeParentheses(trimmedExpression.replace(/^contains\(/i, '').split(',')[0])
                 } else {
                     const parts = splitOperators(trimmedExpression)
                     if (parts.length === 2) {
-                        placeholderName = parts[0].trim()
+                        placeholderName = stripEdgeParentheses(parts[0])
                     } else {
                         throw Error(`Failed to convert filter to ExpressionAttributeValues: ${options.filter}`)
                     }
@@ -187,13 +195,13 @@ export class FindOptions {
                 if (!expression.toLowerCase().includes('contains(')) {
                     const parts = splitOperators(expression.trim())
                     if (parts.length === 2) {
-                        const name = parts[0].trim()
-                        const value = parts[1].trim()
+                        const name = stripEdgeParentheses(parts[0])
+                        const value = stripEdgeParentheses(parts[1])
                         if (value.startsWith("'")) {
-                            const re = new RegExp(`${name}(?=(?:(?:[^']*'){2})*[^']*$)`)
+                            const re = new RegExp(`${escapeRegExp(name)}(?=(?:(?:[^']*'){2})*[^']*$)`)
                             processedExpression = processedExpression.replace(re, `#${poundToUnderscore(name)}`)
                         } else if (value.startsWith('"')) {
-                            const re = new RegExp(`${name}(?=(?:(?:[^"]*"){2})*[^"]*$)`)
+                            const re = new RegExp(`${escapeRegExp(name)}(?=(?:(?:[^"]*"){2})*[^"]*$)`)
                             processedExpression = processedExpression.replace(re, `#${poundToUnderscore(name)}`)
                         }
                         processedExpression = processedExpression.replace(value, placeholder)
