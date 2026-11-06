@@ -201,6 +201,15 @@ describe('param-helper', () => {
         expect(() => paramHelper.update('local-jobs', options)).toThrow('condition name placeholder #status')
     })
 
+    it('update rejects condition value placeholders that collide with the update', async (): Promise<any> => {
+        const options = new UpdateExpressionOptions()
+        options.setValues = { status: 'running' }
+        options.where = { id: 'job-1' }
+        options.condition = { expression: '#current = :status', names: { '#current': 'status' }, values: { ':status': 'queued' } }
+
+        expect(() => paramHelper.update('local-jobs', options)).toThrow('condition value placeholder :status')
+    })
+
     it('recognises failed conditions on single writes and transactions', async (): Promise<any> => {
         expect(isConditionalCheckFailed({ name: 'ConditionalCheckFailedException' })).toBe(true)
         expect(isConditionalCheckFailed({
