@@ -58,7 +58,7 @@
     "@smithy/node-http-handler": "^3"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "overrides": {
     "glob": "^14.0.4",

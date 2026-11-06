@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `UpdateExpressionOptions.condition` adds a DynamoDB `ConditionExpression` (with its own attribute names and values) to `repository.updateExpression()` and `manager.update()`, including inside transactions. Placeholders that collide with the update's own placeholders throw.
 - `isConditionalCheckFailed(error)` recognises failed conditions from single writes (`ConditionalCheckFailedException`) and transactions (`TransactionCanceledException` with a `ConditionalCheckFailed` reason).
 
+### Changed
+
+- Minimum supported Node.js version is now 20 (Node 18 is end-of-life; CI already tests 20, 22 and 24).
+
 ### Fixed
 
 - `findAll({ limit })` now continues across DynamoDB pages until the requested number of items has been collected instead of treating `limit` as only the first request size.
