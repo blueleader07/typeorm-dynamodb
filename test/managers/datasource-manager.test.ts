@@ -1,5 +1,5 @@
 import expect from 'expect'
-import { datasourceManager, AddOptions } from '../../src'
+import { datasourceManager, AddOptions, isConditionalCheckFailed } from '../../src'
 import sinon from 'sinon'
 import { Dummy } from '../entities/dummy'
 import { DummyRepository } from '../repositories/dummy-repository'
@@ -205,16 +205,24 @@ describe('transaction-manager', () => {
         })
 
         it('should handle transactWrite failure', async () => {
-            const error = new Error('DynamoDB transaction failed')
+            const error = Object.assign(new Error('DynamoDB transaction failed'), {
+                name: 'TransactionCanceledException',
+                CancellationReasons: [{ Code: 'ConditionalCheckFailed' }]
+            })
             transactWriteStub.rejects(error)
 
             await queryRunner.startTransaction()
             await queryRunner.putOne('TestTable', { id: '1', name: 'test' })
 
-            await expect(queryRunner.commitTransaction()).rejects.toThrow(
-                new TypeORMError('Transaction failed: DynamoDB transaction failed')
-            )
+            let caughtError: unknown
+            try {
+                await queryRunner.commitTransaction()
+            } catch (error) {
+                caughtError = error
+            }
 
+            expect(caughtError).toBe(error)
+            expect(isConditionalCheckFailed(caughtError)).toBe(true)
             // Transaction should remain active after failure
             expect(queryRunner.isTransactionActive).toBe(true)
         })

@@ -406,24 +406,19 @@ export class DynamoQueryRunner implements QueryRunner {
             throw new TypeORMError('DynamoDB transactions support maximum 100 operations per transaction.')
         }
 
-        try {
-            // Build TransactWriteItems request
-            const transactItems = this.transactionBuffer.map(operation => this.buildTransactItem(operation))
+        // Build TransactWriteItems request
+        const transactItems = this.transactionBuffer.map(operation => this.buildTransactItem(operation))
 
-            const params = {
-                TransactItems: transactItems
-            }
-
-            // Execute the transaction using DocumentClient
-            await getDocumentClient().transactWrite(params)
-
-            // Clear transaction state on success
-            this.isTransactionActive = false
-            this.transactionBuffer = []
-        } catch (error: any) {
-            // Keep transaction active on failure so user can retry or rollback
-            throw new TypeORMError(`Transaction failed: ${error.message || 'Unknown error'}`)
+        const params = {
+            TransactItems: transactItems
         }
+
+        // Execute the transaction using DocumentClient
+        await getDocumentClient().transactWrite(params)
+
+        // Clear transaction state on success
+        this.isTransactionActive = false
+        this.transactionBuffer = []
     }
 
     /**
