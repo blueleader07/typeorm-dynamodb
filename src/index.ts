@@ -15,7 +15,8 @@ import { DynamoSchemaBuilder } from './driver/dynamo/DynamoSchemaBuilder'
 import { PagingAndSortingRepository } from './driver/dynamo/repository/PagingAndSortingRepository'
 import { paramHelper } from './driver/dynamo/helpers/param-helper'
 import { FindOptions, BeginsWith } from './driver/dynamo/models/FindOptions'
-import { UpdateExpressionOptions } from './driver/dynamo/models/UpdateExpressionOptions'
+import { UpdateExpressionOptions, UpdateCondition } from './driver/dynamo/models/UpdateExpressionOptions'
+import { isConditionalCheckFailed } from './driver/dynamo/helpers/conditional-check'
 import { BatchWriteItem } from './driver/dynamo/models/BatchWriteItem'
 import { Pageable } from './driver/dynamo/models/Pageable'
 import { Page } from './driver/dynamo/models/Page'
@@ -47,6 +48,8 @@ export {
     paramHelper,
     FindOptions,
     UpdateExpressionOptions,
+    UpdateCondition,
+    isConditionalCheckFailed,
     BeginsWith,
     Page,
     Sort,

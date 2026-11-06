@@ -265,6 +265,29 @@ The following operations participate in transactions when a transaction is activ
 - **`updateOne(tableName, key, updateExpression, values)`** - Update a single item
 - **Entity Manager operations**: `put()`, `delete()`, `update()`
 
+### Conditional Updates
+
+Add a `condition` to apply a DynamoDB `ConditionExpression` to an update. Use placeholders that differ from the update's own `#field`/`:field` names:
+
+```typescript
+import { isConditionalCheckFailed } from 'typeorm-dynamodb'
+
+try {
+    await getRepository(Job).updateExpression({
+        where: { id: 'job-1' },
+        setValues: { status: 'running' },
+        condition: {
+            expression: '#current = :queued',
+            names: { '#current': 'status' },
+            values: { ':queued': 'queued' }
+        }
+    })
+} catch (error) {
+    if (!isConditionalCheckFailed(error)) throw error
+    // another writer changed the item first
+}
+```
+
 ### Transaction Limitations
 
 DynamoDB transactions have the following limitations:

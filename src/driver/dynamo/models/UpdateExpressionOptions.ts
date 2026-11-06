@@ -12,10 +12,21 @@ export enum UpdateExpressionType {
     SET = 'SET',
 }
 
+/**
+ * Optional ConditionExpression applied to an update. Reference attributes as `#name`
+ * and values as `:name`; `names` and `values` must not reuse the update's own placeholders.
+ */
+export interface UpdateCondition {
+    expression: string
+    names?: Record<string, string>
+    values?: Record<string, unknown>
+}
+
 export class UpdateExpressionOptions {
     addValues?: any
     setValues?: any
     where: any
+    condition?: UpdateCondition
 
     static toAttributeNames (options: UpdateExpressionOptions) {
         const values = mixin(options.addValues || {}, options.setValues || {})
