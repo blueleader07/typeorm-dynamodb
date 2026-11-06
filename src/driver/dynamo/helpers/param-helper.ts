@@ -92,7 +92,7 @@ export const paramHelper = {
         return params
     },
     update (tableName: string, options: UpdateExpressionOptions): UpdateExpressionParams {
-        return {
+        const params: UpdateExpressionParams = {
             TableName: tableName,
             Key: options.where,
             UpdateExpression:
@@ -104,5 +104,21 @@ export const paramHelper = {
                     options
                 )
         }
+        if (options.condition) {
+            params.ConditionExpression = options.condition.expression
+            params.ExpressionAttributeNames = mergePlaceholders(params.ExpressionAttributeNames, options.condition.names, 'name')
+            params.ExpressionAttributeValues = mergePlaceholders(params.ExpressionAttributeValues, options.condition.values, 'value')
+        }
+        return params
     }
+}
+
+const mergePlaceholders = (base: Record<string, unknown>, extra: Record<string, unknown> | undefined, kind: string) => {
+    if (!extra) return base
+    for (const key of Object.keys(extra)) {
+        if (key in base) {
+            throw new Error(`condition ${kind} placeholder ${key} is already used by the update expression`)
+        }
+    }
+    return { ...base, ...extra }
 }

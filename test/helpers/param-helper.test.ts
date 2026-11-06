@@ -1,5 +1,5 @@
 import expect from 'expect'
-import { BeginsWith, FindOptions, UpdateExpressionOptions, paramHelper } from '../../src'
+import { BeginsWith, FindOptions, UpdateExpressionOptions, isConditionalCheckFailed, paramHelper } from '../../src'
 import { IndexMetadata } from 'typeorm/metadata/IndexMetadata.js'
 
 const MACHINE_ID = '9117e83c-6e58-424b-9650-6027c8b67386'
@@ -165,5 +165,59 @@ describe('param-helper', () => {
                 ':invoiceIdAndStatus': '123-failed'
             }
         })
+    })
+
+    it('update with a condition', async (): Promise<any> => {
+        /** given: **/
+        const options = new UpdateExpressionOptions()
+        options.setValues = { status: 'running' }
+        options.where = { id: 'job-1' }
+        options.condition = {
+            expression: '#current = :queued AND (attribute_not_exists(#lease) OR #lease < :now)',
+            names: { '#current': 'status', '#lease': 'leaseUntil' },
+            values: { ':queued': 'queued', ':now': 100 }
+        }
+
+        /** when: **/
+        const params = paramHelper.update('local-jobs', options)
+
+        /** then: **/
+        expect(params).toEqual({
+            TableName: 'local-jobs',
+            Key: { id: 'job-1' },
+            UpdateExpression: 'SET #status = :status',
+            ConditionExpression: '#current = :queued AND (attribute_not_exists(#lease) OR #lease < :now)',
+            ExpressionAttributeNames: { '#status': 'status', '#current': 'status', '#lease': 'leaseUntil' },
+            ExpressionAttributeValues: { ':status': 'running', ':queued': 'queued', ':now': 100 }
+        })
+    })
+
+    it('update rejects condition placeholders that collide with the update', async (): Promise<any> => {
+        const options = new UpdateExpressionOptions()
+        options.setValues = { status: 'running' }
+        options.where = { id: 'job-1' }
+        options.condition = { expression: '#status = :status', names: { '#status': 'status' }, values: { ':status': 'queued' } }
+
+        expect(() => paramHelper.update('local-jobs', options)).toThrow('condition name placeholder #status')
+    })
+
+    it('update rejects condition value placeholders that collide with the update', async (): Promise<any> => {
+        const options = new UpdateExpressionOptions()
+        options.setValues = { status: 'running' }
+        options.where = { id: 'job-1' }
+        options.condition = { expression: '#current = :status', names: { '#current': 'status' }, values: { ':status': 'queued' } }
+
+        expect(() => paramHelper.update('local-jobs', options)).toThrow('condition value placeholder :status')
+    })
+
+    it('recognises failed conditions on single writes and transactions', async (): Promise<any> => {
+        expect(isConditionalCheckFailed({ name: 'ConditionalCheckFailedException' })).toBe(true)
+        expect(isConditionalCheckFailed({
+            name: 'TransactionCanceledException',
+            CancellationReasons: [{ Code: 'None' }, { Code: 'ConditionalCheckFailed' }]
+        })).toBe(true)
+        expect(isConditionalCheckFailed({ name: 'TransactionCanceledException', CancellationReasons: [{ Code: 'ThrottlingError' }] })).toBe(false)
+        expect(isConditionalCheckFailed(new Error('boom'))).toBe(false)
+        expect(isConditionalCheckFailed(undefined)).toBe(false)
     })
 })
